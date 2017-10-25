@@ -1,4 +1,4 @@
-qtpim-opensource-src (5.0~git20140515~29475884-0ubuntu24~3) artful; urgency=medium
+qtpim-opensource-src (5.0~git20140515~29475884+ubports) xenial; urgency=medium
 
   * Build against Qt 5.9.
   * Export QT_LOGGING_RULES="default.debug=true" to unbreak the tests
