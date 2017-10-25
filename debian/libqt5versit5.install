@@ -1,0 +1,3 @@
+usr/lib/*/libQt5Versit.so.*
+usr/lib/*/qt5/plugins/versit/libqtversit_backuphandler.so
+usr/lib/*/qt5/plugins/versit/libqtversit_vcardpreserver.so

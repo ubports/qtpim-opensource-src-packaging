@@ -1,0 +1,331 @@
+From f922e68d080136eafb51f760633d84cd5aedf71d Mon Sep 17 00:00:00 2001
+From: Zhang Xingtao <zhxt@ovi.com>
+Date: Sun, 28 Dec 2014 22:47:04 +0800
+Subject: [PATCH] =?UTF-8?q?Fix=20build:=20error:=20=E2=80=98guard=E2=80=99=20was=20not=20declared=20in=20this=20scope?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Change-Id: If2334079e4494d60bec1b616102175f531343bd9
+Reviewed-by: Konstantin Ritt <ritt.ks@gmail.com>
+---
+ src/contacts/qcontactmanagerengine.cpp    |   34 +++++++++++++++++++++
+ src/organizer/qorganizermanagerengine.cpp |   46 +++++++++++++++++++++++++++++
+ 2 files changed, 80 insertions(+), 0 deletions(-)
+
+diff --git a/src/contacts/qcontactmanagerengine.cpp b/src/contacts/qcontactmanagerengine.cpp
+index 574d36e..5c41a49 100644
+--- a/src/contacts/qcontactmanagerengine.cpp
++++ b/src/contacts/qcontactmanagerengine.cpp
+@@ -1654,7 +1654,9 @@ void QContactManagerEngine::updateRequestState(QContactAbstractRequest* req, QCo
+ #endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QContactAbstractRequest::State, state));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ 
+@@ -1685,10 +1687,14 @@ void QContactManagerEngine::updateContactIdFetchRequest(QContactIdFetchRequest*
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QContactAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1718,10 +1724,14 @@ void QContactManagerEngine::updateContactFetchRequest(QContactFetchRequest* req,
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QContactAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1751,10 +1761,14 @@ void QContactManagerEngine::updateContactRemoveRequest(QContactRemoveRequest* re
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QContactAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1785,10 +1799,14 @@ void QContactManagerEngine::updateContactSaveRequest(QContactSaveRequest* req, c
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QContactAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1819,10 +1837,14 @@ void QContactManagerEngine::updateRelationshipSaveRequest(QContactRelationshipSa
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QContactAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1852,10 +1874,14 @@ void QContactManagerEngine::updateRelationshipRemoveRequest(QContactRelationship
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QContactAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1885,10 +1911,14 @@ void QContactManagerEngine::updateRelationshipFetchRequest(QContactRelationshipF
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QContactAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -2108,10 +2138,14 @@ void QContactManagerEngine::updateContactFetchByIdRequest(QContactFetchByIdReque
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QContactAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ #include "moc_qcontactmanagerengine.cpp"
+diff --git a/src/organizer/qorganizermanagerengine.cpp b/src/organizer/qorganizermanagerengine.cpp
+index eb54532..32bd476 100644
+--- a/src/organizer/qorganizermanagerengine.cpp
++++ b/src/organizer/qorganizermanagerengine.cpp
+@@ -1768,7 +1768,9 @@ void QOrganizerManagerEngine::updateRequestState(QOrganizerAbstractRequest* req,
+ #endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, state));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1798,10 +1800,14 @@ void QOrganizerManagerEngine::updateItemOccurrenceFetchRequest(QOrganizerItemOcc
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1831,10 +1837,14 @@ void QOrganizerManagerEngine::updateItemIdFetchRequest(QOrganizerItemIdFetchRequ
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1868,10 +1878,14 @@ void QOrganizerManagerEngine::updateItemFetchByIdRequest(QOrganizerItemFetchById
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1901,10 +1915,14 @@ void QOrganizerManagerEngine::updateItemFetchRequest(QOrganizerItemFetchRequest*
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1934,10 +1952,14 @@ void QOrganizerManagerEngine::updateItemFetchForExportRequest(QOrganizerItemFetc
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -1967,10 +1989,14 @@ void QOrganizerManagerEngine::updateItemRemoveRequest(QOrganizerItemRemoveReques
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -2000,10 +2026,14 @@ void QOrganizerManagerEngine::updateItemRemoveByIdRequest(QOrganizerItemRemoveBy
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -2034,10 +2064,14 @@ void QOrganizerManagerEngine::updateItemSaveRequest(QOrganizerItemSaveRequest* r
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -2066,10 +2100,14 @@ void QOrganizerManagerEngine::updateCollectionFetchRequest(QOrganizerCollectionF
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -2098,10 +2136,14 @@ void QOrganizerManagerEngine::updateCollectionRemoveRequest(QOrganizerCollection
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ /*!
+@@ -2131,10 +2173,14 @@ void QOrganizerManagerEngine::updateCollectionSaveRequest(QOrganizerCollectionSa
+         connectionType = Qt::BlockingQueuedConnection;
+ #endif
+     QMetaObject::invokeMethod(req, "resultsAvailable", connectionType);
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+     if (emitState)
+         QMetaObject::invokeMethod(req, "stateChanged", connectionType, Q_ARG(QOrganizerAbstractRequest::State, newState));
++#if !defined(QT_NO_DEBUG) || defined(QT_FORCE_ASSERTS)
+     Q_ASSERT(guard);
++#endif
+ }
+ 
+ #include "moc_qorganizermanagerengine.cpp"
+-- 
+1.7.1
+

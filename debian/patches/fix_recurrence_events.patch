@@ -1,0 +1,1425 @@
+=== modified file 'src/imports/organizer/qdeclarativeorganizeritem.cpp'
+--- a/src/imports/organizer/qdeclarativeorganizeritem.cpp	2014-02-28 11:04:37 +0000
++++ b/src/imports/organizer/qdeclarativeorganizeritem.cpp	2016-03-16 20:35:16 +0000
+@@ -136,7 +136,10 @@
+  */
+ QString QDeclarativeOrganizerItem::itemId() const
+ {
+-    return m_id.toString();
++    if (!m_id.isNull())
++        return m_id.toString();
++    else
++        return QString();
+ }
+ 
+ /*!
+@@ -414,10 +417,26 @@
+ /*!
+     \internal
+  */
+-bool QDeclarativeOrganizerItem::generatedOccurrence() const
++bool QDeclarativeOrganizerItem::isOccurrence() const
+ {
+     QDeclarativeOrganizerItemType::ItemType type = itemType();
+-    return (m_id.isNull() && (type == QDeclarativeOrganizerItemType::EventOccurrence || type == QDeclarativeOrganizerItemType::TodoOccurrence));
++
++    return (type == QDeclarativeOrganizerItemType::EventOccurrence ||
++            type == QDeclarativeOrganizerItemType::TodoOccurrence);
++}
++
++/*!
++    \internal
++ */
++bool QDeclarativeOrganizerItem::isGeneratedOccurrence() const
++{
++    if (isOccurrence()) {
++        foreach (QDeclarativeOrganizerItemDetail *detail, m_details) {
++            if (QDeclarativeOrganizerItemDetail::Parent == detail->type())
++                return !static_cast<QDeclarativeOrganizerItemParent *>(detail)->isDetached();
++        }
++    }
++    return false;
+ }
+ 
+ /*!
+
+=== modified file 'src/imports/organizer/qdeclarativeorganizeritem_p.h'
+--- a/src/imports/organizer/qdeclarativeorganizeritem_p.h	2014-02-28 11:04:37 +0000
++++ b/src/imports/organizer/qdeclarativeorganizeritem_p.h	2016-03-16 20:35:16 +0000
+@@ -116,11 +116,13 @@
+     void setItem(const QOrganizerItem &item);
+     QOrganizerItem item() const;
+ 
+-    bool generatedOccurrence() const;
++    bool isOccurrence() const;
++    bool isGeneratedOccurrence() const;
+ 
+     QDateTime itemStartTime() const;
+     QDateTime itemEndTime() const;
+ 
++
+ Q_SIGNALS:
+     void itemChanged();
+ 
+
+=== modified file 'src/imports/organizer/qdeclarativeorganizeritemdetail.cpp'
+--- a/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp	2014-02-28 11:04:37 +0000
++++ b/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp	2016-03-16 20:35:16 +0000
+@@ -699,6 +699,23 @@
+     return m_detail.value(QOrganizerItemParent::FieldParentId).value<QOrganizerItemId>().toString();
+ }
+ 
++/*!
++    \qmlproperty string Parent::isDetached
++
++    This property holds if the event is a detached recurrence or not.
++ */
++void QDeclarativeOrganizerItemParent::setDetached(bool newDetached)
++{
++    if (newDetached != isDetached()) {
++        m_detail.setValue(QOrganizerItemParent::FieldDetached, newDetached);
++        emit valueChanged();
++    }
++}
++
++bool QDeclarativeOrganizerItemParent::isDetached() const
++{
++    return m_detail.value(QOrganizerItemParent::FieldDetached).toBool();
++}
+ 
+ /*!
+     \qmltype Priority
+
+=== modified file 'src/imports/organizer/qdeclarativeorganizeritemdetail_p.h'
+--- a/src/imports/organizer/qdeclarativeorganizeritemdetail_p.h	2014-02-28 11:04:37 +0000
++++ b/src/imports/organizer/qdeclarativeorganizeritemdetail_p.h	2016-03-16 20:35:16 +0000
+@@ -292,11 +292,13 @@
+ 
+     Q_PROPERTY(QDateTime originalDate READ originalDate WRITE setOriginalDate NOTIFY valueChanged)
+     Q_PROPERTY(QString parentId READ parentId WRITE setParentId NOTIFY valueChanged)
++    Q_PROPERTY(bool isDetached READ isDetached WRITE setDetached NOTIFY valueChanged)
+ 
+ public:
+     enum ParentField {
+         FieldParentId = QOrganizerItemParent::FieldParentId,
+-        FieldOriginalDate = QOrganizerItemParent::FieldOriginalDate
++        FieldOriginalDate = QOrganizerItemParent::FieldOriginalDate,
++        FieldDetached = QOrganizerItemParent::FieldDetached
+     };
+ 
+     QDeclarativeOrganizerItemParent(QObject *parent = 0);
+@@ -311,6 +313,9 @@
+     void setParentId(const QString &newParentId);
+     QString parentId() const;
+ 
++    void setDetached(bool newDetached);
++    bool isDetached() const;
++
+ Q_SIGNALS:
+     void valueChanged();
+ };
+
+=== modified file 'src/imports/organizer/qdeclarativeorganizermodel.cpp'
+--- a/src/imports/organizer/qdeclarativeorganizermodel.cpp	2014-05-15 09:27:46 +0000
++++ b/src/imports/organizer/qdeclarativeorganizermodel.cpp	2016-03-16 20:35:16 +0000
+@@ -44,12 +44,14 @@
+ #include <QtCore/qfile.h>
+ #include <QtCore/qmath.h>
+ #include <QtCore/qurl.h>
++#include <QtCore/qpointer.h>
+ 
+ #include <QtQml/qqmlinfo.h>
+ 
+ #include <QtOrganizer/qorganizeritemdetails.h>
+ #include <QtOrganizer/qorganizeritemrequests.h>
+ #include <QtOrganizer/qorganizermanager.h>
++#include <QtOrganizer/qorganizermanagerengine.h>
+ 
+ #include <QtVersitOrganizer/qversitorganizerimporter.h>
+ #include <QtVersitOrganizer/qversitorganizerexporter.h>
+@@ -85,6 +87,7 @@
+ 
+ }
+ 
++static const QByteArray ITEM_TO_SAVE_PROPERTY = QByteArray("ITEM_TO_SAVE_PROPERTY");
+ 
+ class QDeclarativeOrganizerModelPrivate
+ {
+@@ -756,6 +759,15 @@
+     return false;
+ }
+ 
++bool QDeclarativeOrganizerModel::isGeneratedRecurrence(QOrganizerItem &oi) const
++{
++    if (oi.type() == QOrganizerItemType::TypeEventOccurrence || oi.type() == QOrganizerItemType::TypeTodoOccurrence) {
++        QOrganizerItemParent parent = oi.detail(QOrganizerItemDetail::TypeParent);
++        return !parent.isEmpty() && !parent.isDetached();
++    }
++    return false;
++}
++
+ QDeclarativeOrganizerItem* QDeclarativeOrganizerModel::createItem(const QOrganizerItem& item)
+ {
+     QDeclarativeOrganizerItem* di;
+@@ -1103,10 +1115,10 @@
+     Q_D(QDeclarativeOrganizerModel);
+     //TODO: quick search this
+     QStringList ids;
+-    if (!end.isNull()) {
++    if (!start.isNull() && !end.isNull()) {
+         // both start date and end date are valid
+         foreach (QDeclarativeOrganizerItem* item, d->m_items) {
+-            if (item->generatedOccurrence())
++            if (item->isGeneratedOccurrence())
+                 continue;
+             if ( (item->itemStartTime() >= start && item->itemStartTime() <= end)
+                  || (item->itemEndTime() >= start && item->itemEndTime() <= end)
+@@ -1116,13 +1128,13 @@
+     } else if (!start.isNull()) {
+         // only a valid start date is valid
+         foreach (QDeclarativeOrganizerItem* item, d->m_items) {
+-            if (!item->generatedOccurrence() && item->itemStartTime() >= start)
++            if (!item->isGeneratedOccurrence() && item->itemStartTime() >= start)
+                 ids << item->itemId();
+         }
+     } else {
+         // neither start nor end date is valid
+         foreach (QDeclarativeOrganizerItem* item, d->m_items) {
+-            if (!item->generatedOccurrence())
++            if (!item->isGeneratedOccurrence())
+                 ids << item->itemId();
+         }
+     }
+@@ -1181,7 +1193,6 @@
+         // full update: first go through new items and check if they
+         // existed earlier. if they did, use the existing declarative wrapper.
+         // otherwise create new declarative item.
+-        // for occurrences new declarative item is always created.
+         QList<QDeclarativeOrganizerItem *> newList;
+         QHash<QString, QDeclarativeOrganizerItem *> newItemIdHash;
+         QHash<QString, QDeclarativeOrganizerItem *>::iterator iterator;
+@@ -1194,39 +1205,31 @@
+         for (i = 0; i < items.size(); i++) {
+             item = items[i];
+             idString = item.id().toString();
+-            if (item.id().isNull()) {
+-                // this is occurrence
++            iterator = d->m_itemIdHash.find(idString);
++            if (iterator != d->m_itemIdHash.end()) {
++                declarativeItem = iterator.value();
++                declarativeItem->setItem(item);
++            } else {
+                 declarativeItem = createItem(item);
+-            } else {
+-                iterator = d->m_itemIdHash.find(idString);
+-                if (iterator != d->m_itemIdHash.end()) {
+-                    declarativeItem = iterator.value();
+-                    declarativeItem->setItem(item);
+-                } else {
+-                    declarativeItem = createItem(item);
+-                }
+-                newItemIdHash.insert(idString, declarativeItem);
+             }
++            newItemIdHash.insert(idString, declarativeItem);
+             newList.append(declarativeItem);
+         }
+ 
+         // go through old items and delete items, which are not part of the
+-        // new item set. delete also all old occurrences.
++        // new item set.
+         for (i = 0; i < d->m_items.size(); i++) {
+-            // FIXME: avoid unnecessary usage of item getter which copies all details...
+-            if (d->m_items[i]->item().id().isNull()) {
+-                d->m_items[i]->deleteLater();
+-            } else {
+-                iterator = newItemIdHash.find(d->m_items[i]->itemId());
+-                if (iterator == newItemIdHash.end())
+-                    d->m_items[i]->deleteLater();
+-            }
++            QDeclarativeOrganizerItem *item = d->m_items[i];
++            iterator = newItemIdHash.find(item->itemId());
++            if (iterator == newItemIdHash.end())
++                item->deleteLater();
+         }
++
+         beginResetModel();
+         d->m_items = newList;
++        d->m_itemIdHash = newItemIdHash;
+         endResetModel();
+ 
+-        d->m_itemIdHash = newItemIdHash;
+         emit modelChanged();
+     }
+ }
+@@ -1245,6 +1248,14 @@
+         req->setManager(d->m_manager);
+         req->setItem(item);
+ 
++        if (di->itemId().isEmpty()) {
++            // if the item id is empty this means that this item is a new event
++            // we need to keep trace of this declarative item to update with the
++            // new Id as soon as this request finish
++            QPointer<QDeclarativeOrganizerItem> pItem = di;
++            req->setProperty(ITEM_TO_SAVE_PROPERTY, QVariant::fromValue(pItem));
++        }
++
+         connect(req, SIGNAL(stateChanged(QOrganizerAbstractRequest::State)), this, SLOT(onRequestStateChanged(QOrganizerAbstractRequest::State)));
+ 
+         req->start();
+@@ -1340,40 +1351,70 @@
+     Q_ASSERT(request);
+ 
+     checkError(request);
++    if (request->error() == QOrganizerManager::NoError) {
++        switch (request->type()) {
++        case QOrganizerAbstractRequest::ItemSaveRequest:
++        {
++            QVariant vItem = request->property(ITEM_TO_SAVE_PROPERTY);
++            if (vItem.isValid()) {
++                QPointer<QDeclarativeOrganizerItem> pItem = vItem.value<QPointer<QDeclarativeOrganizerItem> >();
++                // Fill declarative item item
++                QOrganizerItemSaveRequest *sr = qobject_cast<QOrganizerItemSaveRequest *>(request);
++                if (pItem && sr->items().length() == 1)
++                    pItem->setItem(sr->items()[0]);
++            }
++            break;
++        }
++        default:
++            break;
++        }
++    }
++
+     request->deleteLater();
+ }
+ 
++bool QDeclarativeOrganizerModel::removeItemFromModel(QDeclarativeOrganizerItem *item)
++{
++    Q_D(QDeclarativeOrganizerModel);
++
++    int index = d->m_items.indexOf(item);
++    if (index != -1) {
++        beginRemoveRows(QModelIndex(), index, index);
++        d->m_itemIdHash.remove(item->itemId());
++        d->m_items.takeAt(index)->deleteLater();
++        endRemoveRows();
++        return true;
++    }
++
++    return false;
++}
++
+ void QDeclarativeOrganizerModel::removeItemsFromModel(const QList<QString> &itemIds)
+ {
+     Q_D(QDeclarativeOrganizerModel);
+     bool emitSignal = false;
+-    bool itemIdFound = false;
+ 
+     foreach (const QString &itemId, itemIds) {
+-        itemIdFound = false;
+-        // generated occurrences are not in m_itemIdHash
+-        if (d->m_itemIdHash.remove(itemId) > 0)
+-            itemIdFound = true;
+-        for (int i = d->m_items.count() - 1; i >= 0; i--) {
+-            if (itemIdFound) {
+-                if (d->m_items.at(i)->itemId() == itemId) {
+-                    beginRemoveRows(QModelIndex(), i, i);
+-                    d->m_items.removeAt(i);
+-                    endRemoveRows();
+-                    emitSignal = true;
+-                    break;
+-                }
+-            } else if (d->m_items.at(i)->generatedOccurrence()) {
+-                QDeclarativeOrganizerItemDetail *parentDetail = d->m_items.at(i)->detail(QDeclarativeOrganizerItemDetail::Parent);
+-                if (parentDetail->value(QDeclarativeOrganizerItemParent::FieldParentId).toString() == itemId) {
+-                    beginRemoveRows(QModelIndex(), i, i);
+-                    d->m_items.removeAt(i);
+-                    endRemoveRows();
+-                    emitSignal = true;
+-                }
++        QDeclarativeOrganizerItem *item =  d->m_itemIdHash.value(itemId, 0);
++        if (item) {
++            bool removed = removeItemFromModel(item);
++            emitSignal =  emitSignal || removed;
++        }
++    }
++
++    // remove all ocorrucen children
++    for (int i = d->m_items.count() - 1; i >= 0; i--) {
++        QDeclarativeOrganizerItem *item = d->m_items.at(i);
++        if (item->isOccurrence()) {
++            QDeclarativeOrganizerItemDetail *parentDetail = item->detail(QDeclarativeOrganizerItemDetail::Parent);
++            QString parentId = parentDetail->value(QDeclarativeOrganizerItemParent::FieldParentId).toString();
++            if (itemIds.contains(parentId)) {
++                bool removed = removeItemFromModel(item);
++                emitSignal = emitSignal || removed;
+             }
+         }
+     }
++
+     if (emitSignal)
+         emit modelChanged();
+ }
+@@ -1412,9 +1453,11 @@
+         fetchRequest->setManager(d->m_manager);
+         fetchRequest->setStartDate(d->m_startPeriod);
+         fetchRequest->setEndDate(d->m_endPeriod);
+-        fetchRequest->setFilter(d->m_filter ? d->m_filter->filter() : QOrganizerItemFilter());
+         fetchRequest->setSorting(d->m_sortOrders);
+         fetchRequest->setFetchHint(d->m_fetchHint ? d->m_fetchHint->fetchHint() : QOrganizerItemFetchHint());
++
++        if (d->m_filter)
++            fetchRequest->setFilter(d->m_filter->filter());
+         d->m_notifiedItems.insert(fetchRequest, addedAndChangedItems);
+ 
+         fetchRequest->start();
+@@ -1423,14 +1466,36 @@
+ 
+ /*!
+     \internal
++*/
++int QDeclarativeOrganizerModel::itemIndex(const QOrganizerItem &item) const
++{
++    Q_D(const QDeclarativeOrganizerModel);
++    if (!d->m_sortOrders.isEmpty()) {
++        for (int i = 0, iMax = d->m_items.size(); i < iMax; i++) {
++            // check to see if the new item should be inserted here
++            // TODO: avoid copy declarative item in 'm_items[i]->item()'
++            // why it is not storing the QOrgnazeItem internally?
++            int comparison = QOrganizerManagerEngine::compareItem(d->m_items[i]->item(),
++                                                                  item,
++                                                                  d->m_sortOrders);
++            //if the items are equal or cannot be compared
++            //we return the current position.The default case is if the new item
++            //should appear before the compared item in item list
++            if (comparison >= 0)
++                return i;
++        }
++    }
++
++    return d->m_items.size();
++}
++
++/*!
++    \internal
+ 
+     It's invoked by the fetch request from onItemsModified().
+  */
+ void QDeclarativeOrganizerModel::onItemsModifiedFetchRequestStateChanged(QOrganizerAbstractRequest::State state)
+ {
+-    // NOTE: this function assumes the sorting algorithm gives always the same result with
+-    // same data. E.g. items which have the identical sorting key must be sorted too.
+-
+     Q_D(QDeclarativeOrganizerModel);
+     if (state != QOrganizerAbstractRequest::FinishedState)
+         return;
+@@ -1440,143 +1505,72 @@
+ 
+     checkError(request);
+ 
+-    QSet<QOrganizerItemId> notifiedItems = d->m_notifiedItems.value(request);
+-    if (notifiedItems.isEmpty())
+-        return;
+-
+     if (request->error() == QOrganizerManager::NoError) {
+-        bool emitSignal = false;
+         QList<QOrganizerItem> fetchedItems = request->items();
+-        QOrganizerItem oldItem;
++        QStringList fetchedItemsIds;
++
++        foreach (const QOrganizerItem i, fetchedItems) {
++            fetchedItemsIds << i.id().toString();
++        }
++
++        // Remove any item in the model that was not returned
++        //***************************************************
++        QStringList removedItems;
++        foreach (const QString &id, d->m_itemIdHash.keys()) {
++            if (!fetchedItemsIds.contains(id)) {
++                removedItems << id;
++            }
++        }
++        if (!removedItems.isEmpty())
++            removeItemsFromModel(removedItems);
++
+         QOrganizerItem newItem;
+-        QOrganizerItemParent oldParentDetail;
+-        QOrganizerItemParent newParentDetail;
+         QDeclarativeOrganizerItem *declarativeItem;
+-        QSet<QOrganizerItemId> removedIds;
+-        QSet<QOrganizerItemId> addedIds;
+         int oldInd = 0;
+         int newInd = 0;
+-        while (newInd < fetchedItems.size()) {
+-            bool addNewItem = false;
+-            bool oldItemExists = false;
+-
+-            newItem = fetchedItems[newInd];
+-            if (oldInd < d->m_items.size()) {
+-                // quick check if items are same in old and new event lists
+-                // FIXME: avoid unnecessary usage of item getter which copies all details
+-                oldItem = d->m_items[oldInd]->item();
+-                oldItemExists = true;
+-                if (!newItem.id().isNull() && !oldItem.id().isNull() && newItem.id() == oldItem.id()) {
+-                    if (notifiedItems.contains(newItem.id())) {
+-                        d->m_items[oldInd]->setItem(newItem);
+-                        const QModelIndex idx = index(oldInd, 0);
+-                        emit dataChanged(idx, idx);
+-                        emitSignal = true;
+-                    }
+-                    newInd++;
+-                    oldInd++;
+-                    continue;
+-                }
+-            }
+-
+-            // check should we remove old item
+-            if (oldItemExists) {
+-                if (oldItem.id().isNull()) {
+-                    // this is generated occurrence
+-                    oldParentDetail = oldItem.detail(QOrganizerItemDetail::TypeParent);
+-                    if (notifiedItems.contains(oldParentDetail.parentId())) {
+-                        beginRemoveRows(QModelIndex(), oldInd, oldInd);
+-                        d->m_items.takeAt(oldInd)->deleteLater();
+-                        endRemoveRows();
+-                        emitSignal = true;
+-                        continue;
+-                    }
+-                } else if (notifiedItems.contains(oldItem.id())) {
+-                    // if notifiedItems contains the oldItem id, it means the item has been
+-                    // changed and we should reuse the declarative part and only remove
+-                    // rows from abstract list model
+-                    // it might also mean that oldItem has been changed so that it does not belong to
+-                    // the model anymore (e.g. changing fron normal item to recurring item)
+-                    beginRemoveRows(QModelIndex(), oldInd, oldInd);
+-                    d->m_items.removeAt(oldInd);
+-                    endRemoveRows();
+-                    removedIds.insert(oldItem.id());
+-                    emitSignal = true;
+-                    continue;
+-                } else if (notifiedItems.contains(newItem.id())) {
+-                    // if newItem is a notified item and does not correspond to an oldItem
+-                    // then find a correspondent item by id in the old items list
+-                    // and remove it from the hash and list
+-                    for (int removeInd = oldInd + 1; removeInd < d->m_items.size(); ++removeInd) {
+-                        if (newItem.id() == d->m_items[removeInd]->item().id()) {
+-                            beginRemoveRows(QModelIndex(), removeInd, removeInd);
+-                            d->m_itemIdHash.remove(d->m_items[removeInd]->itemId());
+-                            d->m_items.takeAt(removeInd)->deleteLater();
+-                            endRemoveRows();
+-                            emitSignal = true;
+-                            break;
+-                        }
+-                    }
+-                }
+-            }
+-            // check should we add the new item
+-            if (newItem.id().isNull() && (newItem.type() == QOrganizerItemType::TypeEventOccurrence || newItem.type() == QOrganizerItemType::TypeTodoOccurrence)) {
+-                // this is occurrence (generated or exception)
+-                newParentDetail = newItem.detail(QOrganizerItemDetail::TypeParent);
+-                if (notifiedItems.contains(newParentDetail.parentId())) {
+-                    declarativeItem = createItem(newItem);
+-                    addNewItem = true;
+-                }
+-            } else if (notifiedItems.contains(newItem.id())) {
+-                QHash<QString, QDeclarativeOrganizerItem *>::const_iterator iterator = d->m_itemIdHash.find(newItem.id().toString());
+-                if (iterator == d->m_itemIdHash.end()) {
+-                    declarativeItem = createItem(newItem);
+-                    d->m_itemIdHash.insert(declarativeItem->itemId(), declarativeItem);
++
++        while (!fetchedItems.isEmpty()) {
++            newItem = fetchedItems.takeFirst();
++            newInd = itemIndex(newItem);
++            declarativeItem = d->m_itemIdHash.value(newItem.id().toString());
++
++            if (declarativeItem) {
++                // this is a update, check if the item changed the position
++                //**********************************************************
++                oldInd = d->m_items.indexOf(declarativeItem);
++
++                // update declarative item
++                declarativeItem->setItem(newItem);
++
++                if (newInd > oldInd) {
++                    newInd--;
++                }
++
++                if (oldInd != newInd) {
++                    // position changed, move item to the new position
++                    QModelIndex parentIndex = QModelIndex();
++                    if (beginMoveRows(parentIndex, oldInd, oldInd, parentIndex, newInd)) {
++                        d->m_items.move(oldInd, newInd);
++                        endMoveRows();
++                    }
+                 } else {
+-                    declarativeItem = d->m_itemIdHash.value(newItem.id().toString());
+-                    addedIds.insert(newItem.id());
++                    // notify item update
++                    const QModelIndex idx = index(oldInd, 0);
++                    emit dataChanged(idx, idx);
+                 }
+-                addNewItem = true;
+-            }
+-
+-            if (addNewItem) {
+-                beginInsertRows(QModelIndex(), oldInd, oldInd);
+-                d->m_items.insert(oldInd, declarativeItem);
++            } else {
++                // New item
++                //**********************************************************
++                declarativeItem = createItem(newItem);
++                beginInsertRows(QModelIndex(), newInd, newInd);
++                d->m_items.insert(newInd, declarativeItem);
++                d->m_itemIdHash.insert(newItem.id().toString(), declarativeItem);
+                 endInsertRows();
+-                emitSignal = true;
+-            }
+-            oldInd++;
+-            newInd++;
+-        }
+-        // remove the rest of the old items
+-        if (oldInd <= d->m_items.size() - 1) {
+-            beginRemoveRows(QModelIndex(), oldInd, d->m_items.size() - 1);
+-            while (oldInd < d->m_items.size()) {
+-                d->m_itemIdHash.remove(d->m_items[oldInd]->itemId());
+-                d->m_items.takeAt(oldInd)->deleteLater();
+-                emitSignal = true;
+-                oldInd++;
+-            }
+-            endRemoveRows();
+-        }
+-        // remove items which were changed so that they are no longer part of the model
+-        // they have been removed from the model earlier, but need to still be removed from the hash
+-        // and deleted
+-
+-        removedIds.subtract(addedIds);
+-        foreach (const QOrganizerItemId &id, removedIds) {
+-            QDeclarativeOrganizerItem *changedItem = d->m_itemIdHash.take(id.toString());
+-            if (changedItem) {
+-                changedItem->deleteLater();
+-                emitSignal = true;
+-            }
+-        }
+-
+-        if (emitSignal)
+-            emit modelChanged();
++            }
++        }
+     }
+-    d->m_notifiedItems.remove(request);
+     request->deleteLater();
++    emit modelChanged();
+ }
+ 
+ /*!
+
+=== modified file 'src/imports/organizer/qdeclarativeorganizermodel_p.h'
+--- a/src/imports/organizer/qdeclarativeorganizermodel_p.h	2014-02-28 11:04:37 +0000
++++ b/src/imports/organizer/qdeclarativeorganizermodel_p.h	2016-03-16 20:35:16 +0000
+@@ -220,8 +220,11 @@
+ 
+ 
+ private:
++    int itemIndex(const QOrganizerItem &item) const;
+     void removeItemsFromModel(const QList<QString>& ids);
++    bool removeItemFromModel(QDeclarativeOrganizerItem *item);
+     bool itemHasRecurrence(const QOrganizerItem& oi) const;
++    bool isGeneratedRecurrence(QOrganizerItem& oi) const;
+     QDeclarativeOrganizerItem* createItem(const QOrganizerItem& item);
+     void checkError(const QOrganizerAbstractRequest *request);
+ 
+
+=== modified file 'src/organizer/details/qorganizeritemdetails.cpp'
+--- a/src/organizer/details/qorganizeritemdetails.cpp	2014-02-28 11:04:37 +0000
++++ b/src/organizer/details/qorganizeritemdetails.cpp	2016-03-16 20:35:16 +0000
+@@ -364,6 +364,7 @@
+     \value FieldParentId      The value stored describes the ID of the item's parent item.
+     \value FieldOriginalDate  The value stored describes the original date of this instance or exception
+                               according to the recurrent series of the parent item is stored.
++    \value FieldDetached      The value stored describes if the event is detached recurrence or not.
+  */
+ 
+ /*!
+@@ -398,6 +399,24 @@
+     setValue(FieldOriginalDate, date);
+ }
+ 
++/*!
++    Returns if the item is a detached recurrence or not
++    A parent is considered detached from the child item if the child item is a
++    persistent exception occurrence of that parent series.
++ */
++bool QOrganizerItemParent::isDetached() const
++{
++    return value(FieldDetached).toBool();
++}
++
++/*!
++    Sets if the item is a detached recurrence or not.
++ */
++void QOrganizerItemParent::setDetached(bool detached)
++{
++    setValue(FieldDetached, detached);
++}
++
+ 
+ /*!
+     \class QOrganizerJournalTime
+
+=== modified file 'src/organizer/details/qorganizeritemparent.h'
+--- a/src/organizer/details/qorganizeritemparent.h	2014-02-28 11:04:37 +0000
++++ b/src/organizer/details/qorganizeritemparent.h	2016-03-16 20:35:16 +0000
+@@ -62,7 +62,8 @@
+ 
+     enum ParentField {
+         FieldParentId = TypeParent + 1,
+-        FieldOriginalDate
++        FieldOriginalDate,
++        FieldDetached,
+     };
+ 
+     void setParentId(const QOrganizerItemId &parentId);
+@@ -70,6 +71,9 @@
+ 
+     void setOriginalDate(const QDate &date);
+     QDate originalDate() const;
++
++    void setDetached(bool detached);
++    bool isDetached() const;
+ };
+ 
+ QT_END_NAMESPACE_ORGANIZER
+
+=== modified file 'src/organizer/qorganizermanagerengine.cpp'
+--- a/src/organizer/qorganizermanagerengine.cpp	2014-02-28 11:04:37 +0000
++++ b/src/organizer/qorganizermanagerengine.cpp	2016-03-16 20:35:16 +0000
+@@ -1277,6 +1277,12 @@
+         instanceItem = QOrganizerTodoOccurrence();
+     }
+ 
++    const QDate localRDate(rdate.toLocalTime().date());
++    // Build recurrence id <parent-id>#<recurrence-date>
++    QString recurrenceId = QString("%1#%2")
++            .arg(parentItem.id().toString())
++            .arg(localRDate.toString(Qt::ISODate));
++    instanceItem.setId(QOrganizerItemId::fromString(recurrenceId));
+     instanceItem.setCollectionId(parentItem.collectionId());
+ 
+     // XXX TODO: something better than this linear search...
+@@ -1294,7 +1300,8 @@
+     // add the detail which identifies exactly which instance this item is.
+     QOrganizerItemParent parentDetail;
+     parentDetail.setParentId(parentItem.id());
+-    parentDetail.setOriginalDate(rdate.date());
++    parentDetail.setOriginalDate(localRDate);
++    parentDetail.setDetached(false);
+     occDetails.append(parentDetail);
+ 
+     // save those details in the instance.
+
+=== modified file 'src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp'
+--- a/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp	2014-02-28 11:04:37 +0000
++++ b/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp	2016-03-16 20:35:16 +0000
+@@ -728,6 +728,8 @@
+             // it already exists, so save it where it already exists.
+             targetCollectionId = d->m_itemsInCollectionsHash.key(theOrganizerItemId);
+         } else if (!d->m_itemsInCollectionsHash.values(targetCollectionId).contains(theOrganizerItemId)) {
++            qDebug() << "Invalid collection";
++
+             // the given collection id was non-null but doesn't already contain this item.  error.
+             *error = QOrganizerManager::InvalidCollectionError;
+             return false;
+@@ -772,8 +774,10 @@
+             }
+         }
+     } else {
+-        // id does not exist; if not zero, fail.
+-        if (!theOrganizerItemId.isNull()) {
++        bool isOcurrence = (theOrganizerItem->type() == QOrganizerItemType::TypeEventOccurrence) ||
++                           (theOrganizerItem->type() == QOrganizerItemType::TypeTodoOccurrence);
++        // if is not a recurrence and id does not exist, fail.
++        if (!theOrganizerItemId.isNull() && !isOcurrence) {
+             // the ID is not empty, and it doesn't identify an existing organizer item in our database either.
+             *error = QOrganizerManager::DoesNotExistError;
+             return false;
+@@ -793,8 +797,7 @@
+ 
+         // if we're saving an exception occurrence, we need to add it's original date as an exdate to the parent.
+         QOrganizerItemId parentId;
+-        if (theOrganizerItem->type() == QOrganizerItemType::TypeEventOccurrence
+-            || theOrganizerItem->type() == QOrganizerItemType::TypeTodoOccurrence) {
++        if (isOcurrence) {
+             // update the event or the todo by adding an EX-DATE which corresponds to the original date of the occurrence being saved.
+             QOrganizerItemParent origin = theOrganizerItem->detail(QOrganizerItemDetail::TypeParent);
+             parentId = origin.parentId();
+@@ -831,6 +834,10 @@
+                 d->m_idToItemHash.insert(parentId, parentItem); // replacement insert
+                 changeSet.insertChangedItem(parentId); // is this correct?  it's an exception, so change parent?
+             }
++
++            // mark event as detached event
++            origin.setDetached(true);
++            theOrganizerItem->saveDetail(&origin);
+         }
+ 
+         // if target collection id is null, set to default id.
+@@ -838,11 +845,15 @@
+             targetCollectionId = d->defaultCollectionId();
+ 
+         // update the organizer item - set its ID
+-        const QOrganizerCollectionMemoryEngineId *colEngineId = static_cast<const QOrganizerCollectionMemoryEngineId *>(QOrganizerManagerEngine::engineCollectionId(targetCollectionId));
+-        QOrganizerItemMemoryEngineId* newId = new QOrganizerItemMemoryEngineId(colEngineId->m_collectionId, d->m_nextOrganizerItemId++, d->m_managerUri);
+-        // note: do NOT delete the QOrganizerItemMemoryEngineId -- the QOrganizerItemId ctor takes ownership of it.
+-        theOrganizerItemId = QOrganizerItemId(newId);
+-        theOrganizerItem->setId(theOrganizerItemId);
++        bool isNewItem = theOrganizerItem->id().isNull();
++        if (isNewItem) {
++            const QOrganizerCollectionMemoryEngineId *colEngineId = static_cast<const QOrganizerCollectionMemoryEngineId *>(QOrganizerManagerEngine::engineCollectionId(targetCollectionId));
++            QOrganizerItemMemoryEngineId* newId = new QOrganizerItemMemoryEngineId(colEngineId->m_collectionId, d->m_nextOrganizerItemId++, d->m_managerUri);
++            // note: do NOT delete the QOrganizerItemMemoryEngineId -- the QOrganizerItemId ctor takes ownership of it.
++            theOrganizerItemId = QOrganizerItemId(newId);
++            theOrganizerItem->setId(theOrganizerItemId);
++        }
++
+         // finally, add the organizer item to our internal lists and return
+         theOrganizerItem->setCollectionId(targetCollectionId);
+         d->m_idToItemHash.insert(theOrganizerItemId, *theOrganizerItem);  // add organizer item to hash
+@@ -851,7 +862,11 @@
+             d->m_parentIdToChildIdHash.insert(parentId, theOrganizerItemId);
+         }
+         d->m_itemsInCollectionsHash.insert(targetCollectionId, theOrganizerItemId);
+-        changeSet.insertAddedItem(theOrganizerItemId);
++        if (isNewItem)
++            changeSet.insertAddedItem(theOrganizerItemId);
++        else
++            changeSet.insertChangedItem(theOrganizerItemId);
++
+     }
+ 
+     *error = QOrganizerManager::NoError;     // successful.
+@@ -1102,8 +1117,25 @@
+ {
+     QHash<QOrganizerItemId, QOrganizerItem>::const_iterator hashIterator = d->m_idToItemHash.find(organizeritemId);
+     if (hashIterator == d->m_idToItemHash.constEnd()) {
+-        *error = QOrganizerManager::DoesNotExistError;
+-        return false;
++        if (!idIsOcurrence(organizeritemId)) {
++            *error = QOrganizerManager::DoesNotExistError;
++            return false;
++        } else {
++            // it is generated ocurrence remove it from parent
++            QOrganizerItemId parentId = QOrganizerItemId::fromString(QString("%1:%2").arg(organizeritemId.managerUri()).arg(this->parentId(organizeritemId)));
++            hashIterator = d->m_idToItemHash.find(parentId);
++            if (hashIterator != d->m_idToItemHash.constEnd()) {
++                QDate ocurrenceDate = QDate::fromString(ocurrenceId(organizeritemId));
++                QOrganizerItem parent = hashIterator.value();
++                if (ocurrenceDate.isValid() && removeOcurrenceDate(&parent, ocurrenceDate)) {
++                    d->m_idToItemHash.insert(parent.id(), parent);
++                    changeSet.insertChangedItem(parent.id());
++                    changeSet.insertRemovedItem(organizeritemId);
++                }
++            } else {
++                return false;
++            }
++        }
+     }
+ 
+     // if it is a child item, remove itself from the children hash
+@@ -1150,13 +1182,10 @@
+         return false;
+     } else {
+         QOrganizerItem parentItem = hashIterator.value();
+-        QOrganizerItemRecurrence recurrenceDetail = parentItem.detail(QOrganizerItemDetail::TypeRecurrence);
+-        QSet<QDate> exceptionDates = recurrenceDetail.exceptionDates();
+-        exceptionDates.insert(parentDetail.originalDate());
+-        recurrenceDetail.setExceptionDates(exceptionDates);
+-        parentItem.saveDetail(&recurrenceDetail);
+-        d->m_idToItemHash.insert(parentDetail.parentId(), parentItem);
+-        changeSet.insertChangedItem(parentDetail.parentId());
++        if (removeOcurrenceDate(&parentItem, parentDetail.originalDate())) {
++            d->m_idToItemHash.insert(parentDetail.parentId(), parentItem);
++            changeSet.insertChangedItem(parentDetail.parentId());
++        }
+     }
+     *error = QOrganizerManager::NoError;
+     return true;
+@@ -1206,17 +1235,23 @@
+     QOrganizerItem current;
+     QSet<QOrganizerItemId> removedParentIds;
+     QOrganizerManager::Error operationError = QOrganizerManager::NoError;
++    bool toBeRemoved;
+     for (int i = 0; i < items->count(); i++) {
+         current = items->at(i);
++        toBeRemoved = false;
+         QOrganizerManager::Error tempError = QOrganizerManager::NoError;
+-        if ((current.type() == QOrganizerItemType::TypeEventOccurrence
+-             || current.type() == QOrganizerItemType::TypeTodoOccurrence)
+-                && current.id().isNull()) {
+-            // this is a generated occurrence, modify parent items exception dates
++        if (isOcurrence(current)) {
+             QOrganizerItemParent parentDetail = current.detail(QOrganizerItemDetail::TypeParent);
+-            if (removedParentIds.isEmpty() || !removedParentIds.contains(parentDetail.parentId()))
++            // check if this is a generated occurrence, and modify parent items exception dates if necessary
++            if (parentDetail.isDetached())
++                toBeRemoved = true;
++            else if (removedParentIds.isEmpty() || !removedParentIds.contains(parentDetail.parentId()))
+                 removeOccurrence(current, changeSet, &tempError);
+         } else {
++            toBeRemoved = true;
++        }
++
++        if (toBeRemoved) {
+             removeItem(current.id(), changeSet, &tempError);
+             if (tempError == QOrganizerManager::NoError && itemHasReccurence(current))
+                 removedParentIds.insert(current.id());
+@@ -1678,6 +1713,57 @@
+     d->emitSharedSignals(&changeSet);
+ }
+ 
++bool QOrganizerItemMemoryEngine::isOcurrence(const QOrganizerItem& item)
++{
++    return (item.type() == QOrganizerItemType::TypeEventOccurrence ||
++            item.type() == QOrganizerItemType::TypeTodoOccurrence);
++}
++
++bool QOrganizerItemMemoryEngine::isGeneratedOcurrence(const QOrganizerItem &item)
++{
++    if (isOcurrence(item)) {
++        QOrganizerItemParent parentDetail = item.detail(QOrganizerItemDetail::TypeParent);
++        return parentDetail.isDetached();
++    }
++    return false;
++}
++
++bool QOrganizerItemMemoryEngine::removeOcurrenceDate(QOrganizerItem *parent, const QDate &date)
++{
++    QOrganizerItemRecurrence recurrenceDetail = parent->detail(QOrganizerItemDetail::TypeRecurrence);
++    QSet<QDate> exceptionDates = recurrenceDetail.exceptionDates();
++
++    if (!exceptionDates.contains(date)) {
++        exceptionDates.insert(date);
++        recurrenceDetail.setExceptionDates(exceptionDates);
++        parent->saveDetail(&recurrenceDetail);
++        return true;
++    }
++
++    return false;
++}
++
++// Id helper functions
++// item Id format: <manager-uri>:<parent-id>#<ocurrence-id>
++bool QOrganizerItemMemoryEngine::idIsOcurrence(const QOrganizerItemId& id)
++{
++    return (id.toString().contains("#"));
++}
++
++QString QOrganizerItemMemoryEngine::ocurrenceId(const QOrganizerItemId& id)
++{
++    if (idIsOcurrence(id)) {
++        return id.toString().split("#").last();
++    }
++    return QString();
++}
++
++QString QOrganizerItemMemoryEngine::parentId(const QOrganizerItemId& id)
++{
++    QString parentId = id.toString().split("#").first();
++    return parentId.split(":").last();
++}
++
+ #include "moc_qorganizeritemmemorybackend_p.cpp"
+ 
+ QT_END_NAMESPACE_ORGANIZER
+
+=== modified file 'src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h'
+--- a/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h	2014-02-28 11:04:37 +0000
++++ b/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h	2016-03-16 20:35:16 +0000
+@@ -282,6 +282,12 @@
+     bool typesAreRelated(QOrganizerItemType::ItemType occurrenceType, QOrganizerItemType::ItemType parentType);
+ 
+     void performAsynchronousOperation(QOrganizerAbstractRequest* request);
++    static bool isOcurrence(const QOrganizerItem &item);
++    static bool isGeneratedOcurrence(const QOrganizerItem &item);
++    static bool removeOcurrenceDate(QOrganizerItem *parent, const QDate &date);
++    static bool idIsOcurrence(const QOrganizerItemId &id);
++    static QString parentId(const QOrganizerItemId &id);
++    static QString ocurrenceId(const QOrganizerItemId &id);
+ 
+     QOrganizerItemMemoryEngineData* d;
+ };
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/QOrganizerTestUtility.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/QOrganizerTestUtility.qml	2014-02-28 11:04:37 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/QOrganizerTestUtility.qml	2016-03-16 20:35:16 +0000
+@@ -200,6 +200,7 @@
+         var removeIds = [];
+         var i;
+         var j;
++
+         for (i = 0; i < __model.itemCount; i++) {
+             if (__model.items[i].itemType == Type.EventOccurrence || __model.items[i].itemType == Type.TodoOccurrence)
+                 ids.push(__model.items[i].parentId)
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_collection.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_collection.qml	2014-02-28 11:04:37 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_collection.qml	2016-03-16 20:35:16 +0000
+@@ -305,6 +305,7 @@
+         var savedEvent = organizerModel.items[organizerModel.items.length - 1];
+         compare(savedEvent.collectionId, organizerModel.defaultCollection().collectionId);//savedEvent sometimes undefined!?!?!?
+         spySettingCollectionId.target = savedEvent;
++        spySettingCollectionId.clear()
+ 
+         // set different collection
+         verify(savedCollection.collectionId != organizerModel.defaultCollection().collectionId)
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_organizercollectionfilter.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizercollectionfilter.qml	2013-05-10 14:15:23 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizercollectionfilter.qml	2016-03-16 20:35:16 +0000
+@@ -136,7 +136,16 @@
+                 utility.waitModelChange(0);
+ 
+                 compare(model.itemCount, 0)
+-                //save event to default collection
++
++                //save a new event to default collection
++                event = Qt.createQmlObject(
++                            "import QtOrganizer 5.0;"
++                            + "Event { "
++                            + "   displayLabel: \"organizer collection filter test event\"; "
++                            + "   description: \"organizer collection filter test event\"; "
++                            + "   startDateTime: '2010-12-12'; "
++                            + "   endDateTime: '2010-12-13'; }"
++                            , test);
+                 event.collectionId = model.defaultCollection().collectionId;
+                 model.saveItem(event);
+                 utility.waitModelChange(1);
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml	2014-02-28 11:04:37 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml	2016-03-16 20:35:16 +0000
+@@ -194,7 +194,7 @@
+                 model.destroy();
+                 event.destroy();
+                 emailReminderDetail.destroy();
+-   //           utility.empty_calendar();
++                utility.empty_calendar();
+             }
+         }
+     }
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_organizerintersectionfilter.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizerintersectionfilter.qml	2013-05-10 14:15:23 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizerintersectionfilter.qml	2016-03-16 20:35:16 +0000
+@@ -124,7 +124,16 @@
+                 utility.waitModelChange(1);
+                 compare(model.itemCount, 1)
+ 
+-                //event with new collection id
++                //new event with new collection id
++                event = Qt.createQmlObject(
++                            "import QtOrganizer 5.0;"
++                            + "Event { "
++                            + "   id:event;"
++                            + "   displayLabel: \"organizer intersection filter test event\"; "
++                            + "   description: \"organizer intersection filter test event\"; "
++                            + "   startDateTime: '2010-12-12'; "
++                            + "   endDateTime: '2010-12-13'; }"
++                            , test);
+                 event.collectionId = savedCollection.collectionId;
+                 model.saveItem(event);
+                 utility.waitModelChange(2);
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml	2014-02-28 11:04:37 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml	2016-03-16 20:35:16 +0000
+@@ -112,6 +112,7 @@
+                 verify(item2.displayLabel === "EditedEvent1");
+ 
+                 //------delete event------//
++                utility.clearModelChanged()
+                 model.removeItem(ids[0]);
+                 utility.waitModelChange(0);
+                 verify(model.itemCount === 0);
+@@ -124,8 +125,6 @@
+                 //remove a list of event
+                 model.saveItem(newEvent2);
+                 utility.waitModelChange(1);
+-                model.saveItem(newEvent1);
+-                utility.waitModelChange(2);
+                 var deletList = model.itemIds();
+                 model.removeItems(deletList);
+                 utility.waitModelChange(0);
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml	2014-05-15 09:27:46 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml	2016-03-16 20:35:16 +0000
+@@ -365,6 +365,196 @@
+         component.destroy()
+     }
+ 
++    function test_removeEvent_data() {
++        var event1 = utility.create_testobject("import QtQuick 2.0\n"
++            + "import QtOrganizer 5.0\n"
++            + "Event {\n"
++            + "  displayLabel: \"starts 2010-12-09 8AM finishes 5PM\"\n"
++            + "  startDateTime: new Date(2010, 12, 9, 8, 0)\n"
++            + "  endDateTime: new Date(2010, 12, 9, 17, 0)\n"
++            + "}\n", modelTests);
++
++        var event2 = utility.create_testobject("import QtQuick 2.0\n"
++            + "import QtOrganizer 5.0\n"
++            + "Event {\n"
++            + "  displayLabel: \"starts 2010-12-10 at 11AM finishing 1PM, repeating for 4 weeks\"\n"
++            + "  startDateTime: new Date(2010, 12, 10, 11, 0)\n"
++            + "  endDateTime: new Date(2010, 12, 10, 13, 0)\n"
++            + "}\n", modelTests);
++
++        var event2Recurrence = utility.create_testobject("import QtQuick 2.0\n"
++            + "import QtOrganizer 5.0\n"
++            + "Recurrence {\n"
++            + "  recurrenceRules: RecurrenceRule {\n"
++            + "    frequency: RecurrenceRule.Weekly\n"
++            + "    daysOfWeek: [Qt.Friday]\n"
++            + "    limit: 3\n"
++            + "  }\n"
++            + "}\n", modelTests);
++        event2.setDetail(event2Recurrence)
++
++        return [ {'events': [event1, event2],
++                  'count': 4 } ]
++    }
++
++    function test_removeEvent(data)
++    {
++        var managers = utility.getManagerListData();
++        for (var i=0; i < managers.length; i++) {
++            var managerName = managers[i].managerToBeTested
++            var organizerModel = utility.create_testobject("import QtQuick 2.0\n"
++                + "import QtOrganizer 5.0\n"
++                + "OrganizerModel {\n"
++                + "  manager: '" + managerName + "'\n"
++                + "  startPeriod: new Date(2010, 1, 1, 0, 0)\n"
++                + "  endPeriod: new Date(2010, 12, 30, 23, 59)\n"
++                + "  sortOrders: [\n"
++                + "    SortOrder {\n"
++                + "      detail: Detail.EventTime\n"
++                + "      field: EventTime.FieldStartDateTime\n"
++                + "      direction: Qt.AscendingOrder\n"
++                + "    }\n"
++                + "  ]\n"
++                + "}\n", modelTests);
++
++            for (var e=0; e < data.events.length; e++)
++                organizerModel.saveItem(data.events[e])
++            tryCompare(organizerModel, "itemCount", data.count)
++
++            // remove the recurrence event (should remove all children events)
++            organizerModel.removeItem(data.events[1].itemId)
++            tryCompare(organizerModel, "itemCount", 1)
++
++            // remove standalone item
++            organizerModel.removeItem(organizerModel.items[0])
++            tryCompare(organizerModel, "itemCount", 0)
++        }
++    }
++
++    function test_modify_recurrenceEvents_data() {
++        return utility.getManagerListData();
++    }
++
++    function test_modify_recurrenceEvents(data) {
++        console.debug("TEST:" + data.managerToBeTested )
++        var event = utility.create_testobject("import QtQuick 2.0\n"
++            + "import QtOrganizer 5.0\n"
++            + "Event {\n"
++            + "  displayLabel: \"starts 2010-12-10 at 11AM finishing 1PM, repeating for 4 weeks\"\n"
++            + "  startDateTime: new Date(2010, 12, 10, 11, 0)\n"
++            + "  endDateTime: new Date(2010, 12, 10, 13, 0)\n"
++            + "}\n", modelTests);
++
++        var eventRecurrence = utility.create_testobject("import QtQuick 2.0\n"
++            + "import QtOrganizer 5.0\n"
++            + "Recurrence {\n"
++            + "  recurrenceRules: RecurrenceRule {\n"
++            + "    frequency: RecurrenceRule.Weekly\n"
++            + "    daysOfWeek: [Qt.Friday]\n"
++            + "    limit: 3\n"
++            + "  }\n"
++            + "}\n", modelTests);
++        event.setDetail(eventRecurrence)
++
++        var organizerModel = utility.create_testobject("import QtQuick 2.0\n"
++            + "import QtOrganizer 5.0\n"
++            + "OrganizerModel {\n"
++            + "  property var testFetchedItems: []\n"
++            + "  manager: '" + data.managerToBeTested + "'\n"
++            + "  startPeriod: new Date(2010, 1, 1, 0, 0)\n"
++            + "  endPeriod: new Date(2010, 12, 30, 23, 59)\n"
++            + "  sortOrders: [\n"
++            + "    SortOrder {\n"
++            + "      detail: Detail.EventTime\n"
++            + "      field: EventTime.FieldStartDateTime\n"
++            + "      direction: Qt.AscendingOrder\n"
++            + "    }\n"
++            + "  ]\n"
++            + "    onItemsFetched: {\n"
++            + "        testFetchedItems = fetchedItems;\n"
++            + "    }\n"
++            + "}\n", modelTests);
++
++        organizerModel.saveItem(event)
++        tryCompare(organizerModel, "itemCount", 3)
++
++        var organizerChangedSpy = utility.create_testobject("import QtTest 1.0; SignalSpy {}", organizerModel);
++        organizerChangedSpy.target = organizerModel;
++        organizerChangedSpy.signalName = "modelChanged";
++
++        // modify a individual recurrence event
++        var itemNewDisplayLabel = "starts 2010-12-10 at 11AM finishing 1PM, repeating for 4 weeks (detached)"
++        var item = organizerModel.items[1]
++        item.displayLabel = itemNewDisplayLabel
++        organizerModel.saveItem(item)
++        organizerChangedSpy.wait();
++
++        // fetch modified item
++        var organizerFetchedSpy = utility.create_testobject("import QtTest 1.0; SignalSpy {}", organizerModel);
++        organizerFetchedSpy.target = organizerModel;
++        organizerFetchedSpy.signalName = "itemsFetched";;
++        organizerModel.fetchItems([item.itemId])
++        organizerFetchedSpy.wait()
++        compare(organizerFetchedSpy.count, 1)
++        compare(organizerModel.testFetchedItems.length, 1)
++        var newItem = organizerModel.testFetchedItems[0]
++        // check if item is marked as detached and contains the new display label
++        compare(newItem.displayLabel, itemNewDisplayLabel)
++        var parentDetail = newItem.detail(Detail.Parent)
++        compare(parentDetail.isDetached, true)
++    }
++
++    function test_remove_a_single_ocurrence_data() {
++        return utility.getManagerListData();
++    }
++
++    function test_remove_a_single_ocurrence(data) {
++        var event = utility.create_testobject("import QtQuick 2.0\n"
++            + "import QtOrganizer 5.0\n"
++            + "Event {\n"
++            + "  displayLabel: \"starts 2010-12-10 at 11AM finishing 1PM, repeating for 4 weeks\"\n"
++            + "  startDateTime: new Date(2010, 12, 10, 11, 0)\n"
++            + "  endDateTime: new Date(2010, 12, 10, 13, 0)\n"
++            + "}\n", modelTests);
++
++        var eventRecurrence = utility.create_testobject("import QtQuick 2.0\n"
++            + "import QtOrganizer 5.0\n"
++            + "Recurrence {\n"
++            + "  recurrenceRules: RecurrenceRule {\n"
++            + "    frequency: RecurrenceRule.Weekly\n"
++            + "    daysOfWeek: [Qt.Friday]\n"
++            + "    limit: 3\n"
++            + "  }\n"
++            + "}\n", modelTests);
++        event.setDetail(eventRecurrence)
++
++        var organizerModel = utility.create_testobject("import QtQuick 2.0\n"
++            + "import QtOrganizer 5.0\n"
++            + "OrganizerModel {\n"
++            + "  manager: '" + data.managerToBeTested + "'\n"
++            + "  startPeriod: new Date(2010, 1, 1, 0, 0)\n"
++            + "  endPeriod: new Date(2010, 12, 30, 23, 59)\n"
++            + "  sortOrders: [\n"
++            + "    SortOrder {\n"
++            + "      detail: Detail.EventTime\n"
++            + "      field: EventTime.FieldStartDateTime\n"
++            + "      direction: Qt.AscendingOrder\n"
++            + "    }\n"
++            + "  ]\n"
++            + "}\n", modelTests);
++
++        organizerModel.saveItem(event)
++        tryCompare(organizerModel, "itemCount", 3)
++
++        var organizerChangedSpy = utility.create_testobject("import QtTest 1.0; SignalSpy {}", organizerModel);
++        organizerChangedSpy.target = organizerModel;
++        organizerChangedSpy.signalName = "modelChanged";
++
++        // remove a single recurrence
++        organizerModel.removeItem(organizerModel.items[1].itemId)
++        tryCompare(organizerModel, "itemCount", 2)
++    }
++
+     function test_organizermodel_error_data() {
+         return utility.getManagerListData();
+     }
+@@ -1137,6 +1327,14 @@
+             collection1.name = 'collection ' + i
+             model.saveCollection(collection1);
+             collectionsChangedSpy.wait(signalWaitTime);
++            if (event1)
++                event1.destroy()
++            event1 = utility.create_testobject(
++                            "import QtOrganizer 5.0\n"
++                            + "Event {\n"
++                            + "  startDateTime: new Date(2011, 12, 7, 11)\n"
++                            + "  endDateTime: new Date(2011, 12, 8, 0, 30)\n"
++                            + "}\n", modelTests);
+             event1.collectionId = model.collections[i].collectionId;
+             model.saveItem(event1);
+             modelChangedSpy.wait(signalWaitTime);
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_organizermodelupdate.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodelupdate.qml	2014-05-15 09:27:46 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodelupdate.qml	2016-03-16 20:35:16 +0000
+@@ -957,6 +957,7 @@
+ 
+             // removeGeneratedOccurrence
+             var occurrenceRemove = model.items[0];
++            console.debug("Remove item>" + occurrenceRemove.itemId)
+             model.removeItem(occurrenceRemove);
+             modelChangedSpy.wait(spyWaitDelay);
+             compareResultDatesToModel(data.modifications.removeGeneratedOccurrence.results, model);
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_organizerrecurrence.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizerrecurrence.qml	2014-02-28 11:04:37 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizerrecurrence.qml	2016-03-16 20:35:16 +0000
+@@ -47,6 +47,19 @@
+     id: test
+     name: "OrganizerRecurrenceTests"
+ 
++    property var testEvent: null
++    property var testTodo: null
++
++    Component {
++        id: eventComponent
++        Event {}
++    }
++
++    Component {
++        id: todoComponent
++        Todo {}
++    }
++
+     QOrganizerTestUtility {
+         id: utility
+     }
+@@ -58,14 +71,6 @@
+         endPeriod:'2014-12-31'
+     }
+ 
+-    Event {
+-        id: testEvent
+-    }
+-
+-    Todo {
+-        id: testTodo
+-    }
+-
+     RecurrenceRule {
+         id: testRule
+     }
+@@ -655,6 +660,7 @@
+             model.manager = managers[i];
+             spyManagerChanged.wait()
+             cleanDatabase();
++            testEvent = eventComponent.createObject(test)
+ 
+             testRule.frequency = RecurrenceRule.Daily;
+             testRule.interval = 1;
+@@ -681,6 +687,7 @@
+             model.manager = managers[i];
+             spyManagerChanged.wait()
+             cleanDatabase();
++            testEvent = eventComponent.createObject(test)
+ 
+             testRule.frequency = RecurrenceRule.Daily;
+             testRule.interval = 3;
+@@ -726,7 +733,6 @@
+ 
+     function runTest(data) {
+         for (var i in data.managers) {
+-            console.log("Testing "+data.managers[i]+" backend")
+             model.manager = data.managers[i]
+             spyManagerChanged.wait()
+             cleanDatabase()
+@@ -776,6 +782,16 @@
+             spyModelChanged.wait()
+         }
+         compare(model.itemIds().length, 0)
++
++        if (testEvent) {
++            testEvent.destroy()
++            testEvent = null
++        }
++
++        if (testTodo) {
++            testTodo.destroy()
++            testTodo = null
++        }
+     }
+ 
+     function populateTestItemsFromData(data) {
+@@ -803,6 +819,8 @@
+             testXRule.positions = data.xrule.positions;
+             testXRule.firstDayOfWeek = data.xrule.firstDayOfWeek;
+         }
++        testEvent = eventComponent.createObject(test)
++        testTodo = todoComponent.createObject(test)
+ 
+         testEvent.startDateTime = new Date(data.definitions.start);
+         testTodo.startDateTime = new Date(data.definitions.start);
+@@ -818,7 +836,6 @@
+         testTodo.recurrence.exceptionDates = data.definitions.exceptionDates;
+         testEvent.recurrence.exceptionRules = data.definitions.exceptionRules;
+         testTodo.recurrence.exceptionRules = data.definitions.exceptionRules;
+-
+     }
+ 
+     function compareResultDatesToModel(results, model) {
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_organizerunionfilter.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizerunionfilter.qml	2013-05-10 14:15:23 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizerunionfilter.qml	2016-03-16 20:35:16 +0000
+@@ -122,12 +122,23 @@
+                 model.saveItem(event);
+                 utility.waitModelChange(1);
+                 compare(model.itemCount, 1)
++                event.destroy()
+ 
+                 //event with new collection id
++                event = Qt.createQmlObject(
++                                        "import QtOrganizer 5.0;"
++                                        + "Event { "
++                                        + "   id:event;"
++                                        + "   displayLabel: \"organizer union filter test event\"; "
++                                        + "   description: \"organizer union filter test event\"; "
++                                        + "   startDateTime: '2010-12-12'; "
++                                        + "   endDateTime: '2010-12-13'; }"
++                                        , test);
+                 event.collectionId = savedCollection.collectionId;
+                 model.saveItem(event);
+                 utility.waitModelChange(2);
+                 compare(model.itemCount, 2)
++                event.destroy()
+ 
+                 var fetchlist = model.items;
+                 var idEventId;
+
+=== modified file 'tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml'
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml	2014-02-28 11:04:37 +0000
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml	2016-03-16 20:35:16 +0000
+@@ -174,6 +174,7 @@
+                 visualReminderDetail.repetitionCount = 0;
+ 
+                 savedVisualEvent.setDetail(savedEventDetail);
++                console.debug("SAVE")
+ 
+                 model.saveItem(savedVisualEvent);
+                 utility.organizerChangedSpy.wait();
+@@ -208,7 +209,7 @@
+                 model.destroy();
+                 visualReminderEvent.destroy();
+                 visualReminderDetail.destroy();
+-    //            utility.empty_calendar();
++                utility.empty_calendar();
+             }
+         }
+     }
+

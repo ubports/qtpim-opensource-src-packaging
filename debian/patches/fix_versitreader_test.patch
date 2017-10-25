@@ -1,0 +1,54 @@
+Description: fix QVersitReader::testReading unit test
+Origin: upstream, https://code.qt.io/cgit/qt/qtpim.git/commit/?id=59167a6fb64edd53
+Last-Update: 2017-07-07
+
+--- a/tests/auto/versit/qversitreader/tst_qversitreader.cpp
++++ b/tests/auto/versit/qversitreader/tst_qversitreader.cpp
+@@ -480,10 +480,19 @@
+ 
+     // calling setData directly on reader
+     mReader->setData(validDocumentsAndGroupedDocument);
+-    QVERIFY(mReader->startReading());
+-    mReader->waitForFinished();
++    mSignalCatcher->mStateChanges.clear();
++    mSignalCatcher->mResultsCount = 0;
++    QVERIFY2(mReader->startReading(), QString::number(mReader->error()).toLatin1().data());
++    QVERIFY2(mReader->waitForFinished(), QString::number(mReader->error()).toLatin1().data());
++    QTRY_VERIFY(mSignalCatcher->mStateChanges.count() >= 2); // signals sent from other thread, so wait for delivery
++    QCOMPARE(mSignalCatcher->mStateChanges.at(0), QVersitReader::ActiveState);
++    QCOMPARE(mSignalCatcher->mStateChanges.at(1), QVersitReader::FinishedState);
++    QCOMPARE(mReader->state(), QVersitReader::FinishedState);
++    QCOMPARE(mReader->error(), QVersitReader::NoError);
+     QCOMPARE(mReader->results().size(), 5);
+ 
++    qApp->processEvents(); // clean up before we start sniffing signals
++
+     // Asynchronous reading
+     mReader->setDevice(mInputDevice);
+     mInputDevice->close();
+@@ -493,13 +502,15 @@
+     mSignalCatcher->mStateChanges.clear();
+     mSignalCatcher->mResultsCount = 0;
+     QVERIFY2(mReader->startReading(), QString::number(mReader->error()).toLatin1().data());
+-    QTRY_VERIFY(mSignalCatcher->mStateChanges.count() >= 2);
++    QTRY_VERIFY(mSignalCatcher->mStateChanges.count() >= 2); // signals sent from other thread, so wait for delivery
+     QCOMPARE(mSignalCatcher->mStateChanges.at(0), QVersitReader::ActiveState);
+     QCOMPARE(mSignalCatcher->mStateChanges.at(1), QVersitReader::FinishedState);
+     QVERIFY(mSignalCatcher->mResultsCount >= 2);
+     QCOMPARE(mReader->results().size(), 2);
+     QCOMPARE(mReader->error(), QVersitReader::NoError);
+ 
++    qApp->processEvents(); // clean up before we start sniffing signals
++
+     // Cancelling
+     mInputDevice->close();
+     mInputDevice->setData(twoDocuments);
+@@ -510,7 +521,7 @@
+     QVERIFY2(mReader->startReading(), QString::number(mReader->error()).toLatin1().data());
+     mReader->cancel();
+     mReader->waitForFinished();
+-    QTRY_VERIFY(mSignalCatcher->mStateChanges.count() >= 2);
++    QTRY_VERIFY(mSignalCatcher->mStateChanges.count() >= 2); // signals sent from other thread, so wait for delivery
+     QCOMPARE(mSignalCatcher->mStateChanges.at(0), QVersitReader::ActiveState);
+     QVersitReader::State state(mSignalCatcher->mStateChanges.at(1));
+     // It's possible that it finishes before it cancels.

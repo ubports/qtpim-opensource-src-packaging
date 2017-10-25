@@ -1,0 +1,40 @@
+From d9eb1ae25803b2815c361d7478873c7cba607cf2 Mon Sep 17 00:00:00 2001
+From: Chris Adams <chris.adams@jollamobile.com>
+Date: Fri, 10 Jun 2016 16:24:09 +1000
+Subject: [PATCH] Install QtOrganizer example applications
+
+This commit ensures that the QtOrganizer example applications are
+installed to the Qt examples folder under pim/organizer.
+
+Change-Id: I30f47ca8eecea8385e1b587cdcf5b9ca53470a68
+Reviewed-by: Robin Burchell <robin.burchell@viroteck.net>
+---
+ examples/organizer/calendardemo/calendardemo.pro | 3 +++
+ examples/organizer/todo/todo.pro                 | 3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/examples/organizer/calendardemo/calendardemo.pro b/examples/organizer/calendardemo/calendardemo.pro
+index 758360b..b292133 100644
+--- a/examples/organizer/calendardemo/calendardemo.pro
++++ b/examples/organizer/calendardemo/calendardemo.pro
+@@ -23,3 +23,6 @@ HEADERS += src/calendardemo.h \
+            src/eventoccurrenceeditpage.h \
+            src/addcalendarpage.h \
+            src/editcalendarspage.h
++
++target.path  = $$[QT_INSTALL_EXAMPLES]/organizer/calendardemo
++INSTALLS    += target
+diff --git a/examples/organizer/todo/todo.pro b/examples/organizer/todo/todo.pro
+index 58a804e..b7d891a 100644
+--- a/examples/organizer/todo/todo.pro
++++ b/examples/organizer/todo/todo.pro
+@@ -8,3 +8,6 @@ HEADERS += todoeditor.h \
+ SOURCES += window.cpp \
+            todoeditor.cpp \
+            main.cpp
++
++target.path  = $$[QT_INSTALL_EXAMPLES]/organizer/todo
++INSTALLS    += target
+-- 
+2.7.4
+

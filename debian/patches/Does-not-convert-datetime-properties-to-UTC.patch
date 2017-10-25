@@ -1,0 +1,156 @@
+From 395aad0601f2ee235af85af1eb00e97e270a91de Mon Sep 17 00:00:00 2001
+From: Renato Araujo Oliveira Filho <renato.filho@canonical.com>
+Date: Fri, 1 Apr 2016 17:18:57 -0300
+Subject: [PATCH] Does not convert datetime properties to UTC.
+
+Avoid convert datetime values to UTC.
+We need to store the value in the original timezone to correct calculate
+the daylight saving values.
+
+Change-Id: Ic21dec1d7cfda6ce1e70615d9d7574a7fddc445a
+---
+ .../organizer/qdeclarativeorganizeritemdetail.cpp  | 32 +++++++++++-----------
+ 1 file changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp b/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
+index 40474b4..f39aa03 100644
+--- a/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
++++ b/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
+@@ -236,14 +236,14 @@ bool QDeclarativeOrganizerEventTime::isAllDay()
+ void QDeclarativeOrganizerEventTime::setStartDateTime(const QDateTime &datetime)
+ {
+      if (datetime != startDateTime()) {
+-        m_detail.setValue(QOrganizerEventTime::FieldStartDateTime, datetime.toUTC());
++        m_detail.setValue(QOrganizerEventTime::FieldStartDateTime, datetime);
+         emit valueChanged();
+      }
+ }
+ 
+ QDateTime QDeclarativeOrganizerEventTime::startDateTime() const
+ {
+-    return m_detail.value<QDateTime>(QOrganizerEventTime::FieldStartDateTime).toLocalTime();
++    return m_detail.value<QDateTime>(QOrganizerEventTime::FieldStartDateTime);
+ }
+ 
+ /*!
+@@ -254,14 +254,14 @@ QDateTime QDeclarativeOrganizerEventTime::startDateTime() const
+ void QDeclarativeOrganizerEventTime::setEndDateTime(const QDateTime &datetime)
+ {
+     if (datetime != endDateTime()) {
+-        m_detail.setValue(QOrganizerEventTime::FieldEndDateTime, datetime.toUTC());
++        m_detail.setValue(QOrganizerEventTime::FieldEndDateTime, datetime);
+         emit valueChanged();
+     }
+ }
+ 
+ QDateTime QDeclarativeOrganizerEventTime::endDateTime() const
+ {
+-    return m_detail.value<QDateTime>(QOrganizerEventTime::FieldEndDateTime).toLocalTime();
++    return m_detail.value<QDateTime>(QOrganizerEventTime::FieldEndDateTime);
+ }
+ 
+ 
+@@ -1146,14 +1146,14 @@ QDeclarativeOrganizerItemDetail::DetailType QDeclarativeOrganizerItemTimestamp::
+ void QDeclarativeOrganizerItemTimestamp::setCreated(const QDateTime &timestamp)
+ {
+     if (timestamp != created()) {
+-        m_detail.setValue(QOrganizerItemTimestamp::FieldCreated, timestamp.toUTC());
++        m_detail.setValue(QOrganizerItemTimestamp::FieldCreated, timestamp);
+         emit valueChanged();
+     }
+ }
+ 
+ QDateTime QDeclarativeOrganizerItemTimestamp::created() const
+ {
+-    return m_detail.value<QDateTime>(QOrganizerItemTimestamp::FieldCreated).toLocalTime();
++    return m_detail.value<QDateTime>(QOrganizerItemTimestamp::FieldCreated);
+ }
+ 
+ /*!
+@@ -1164,14 +1164,14 @@ QDateTime QDeclarativeOrganizerItemTimestamp::created() const
+ void QDeclarativeOrganizerItemTimestamp::setLastModified(const QDateTime &timestamp)
+ {
+     if (timestamp != lastModified()) {
+-        m_detail.setValue(QOrganizerItemTimestamp::FieldLastModified, timestamp.toUTC());
++        m_detail.setValue(QOrganizerItemTimestamp::FieldLastModified, timestamp);
+         emit valueChanged();
+     }
+ }
+ 
+ QDateTime QDeclarativeOrganizerItemTimestamp::lastModified() const
+ {
+-    return m_detail.value<QDateTime>(QOrganizerItemTimestamp::FieldLastModified).toLocalTime();
++    return m_detail.value<QDateTime>(QOrganizerItemTimestamp::FieldLastModified);
+ }
+ 
+ 
+@@ -1277,13 +1277,13 @@ QDeclarativeOrganizerItemDetail::DetailType QDeclarativeOrganizerJournalTime::ty
+ void QDeclarativeOrganizerJournalTime::setEntryDateTime(const QDateTime &datetime)
+ {
+     if (datetime != entryDateTime()) {
+-        m_detail.setValue(QOrganizerJournalTime::FieldEntryDateTime, datetime.toUTC());
++        m_detail.setValue(QOrganizerJournalTime::FieldEntryDateTime, datetime);
+         emit valueChanged();
+     }
+ }
+ QDateTime QDeclarativeOrganizerJournalTime::entryDateTime() const
+ {
+-    return m_detail.value<QDateTime>(QOrganizerJournalTime::FieldEntryDateTime).toLocalTime();
++    return m_detail.value<QDateTime>(QOrganizerJournalTime::FieldEntryDateTime);
+ }
+ 
+ 
+@@ -1352,14 +1352,14 @@ int QDeclarativeOrganizerTodoProgress::percentageComplete() const
+ void QDeclarativeOrganizerTodoProgress::setFinishedDateTime(const QDateTime &datetime)
+ {
+     if (datetime != finishedDateTime()) {
+-        m_detail.setValue(QOrganizerTodoProgress::FieldFinishedDateTime, datetime.toUTC());
++        m_detail.setValue(QOrganizerTodoProgress::FieldFinishedDateTime, datetime);
+         emit valueChanged();
+     }
+ }
+ 
+ QDateTime QDeclarativeOrganizerTodoProgress::finishedDateTime() const
+ {
+-    return m_detail.value<QDateTime>(QOrganizerTodoProgress::FieldFinishedDateTime).toLocalTime();
++    return m_detail.value<QDateTime>(QOrganizerTodoProgress::FieldFinishedDateTime);
+ }
+ 
+ /*!
+@@ -1448,14 +1448,14 @@ bool QDeclarativeOrganizerTodoTime::isAllDay()
+ void QDeclarativeOrganizerTodoTime::setStartDateTime(const QDateTime &datetime)
+ {
+     if (datetime != startDateTime()) {
+-        m_detail.setValue(QOrganizerTodoTime::FieldStartDateTime, datetime.toUTC());
++        m_detail.setValue(QOrganizerTodoTime::FieldStartDateTime, datetime);
+         emit valueChanged();
+     }
+ }
+ 
+ QDateTime QDeclarativeOrganizerTodoTime::startDateTime() const
+ {
+-    return m_detail.value<QDateTime>(QOrganizerTodoTime::FieldStartDateTime).toLocalTime();
++    return m_detail.value<QDateTime>(QOrganizerTodoTime::FieldStartDateTime);
+ }
+ 
+ /*!
+@@ -1466,14 +1466,14 @@ QDateTime QDeclarativeOrganizerTodoTime::startDateTime() const
+ void QDeclarativeOrganizerTodoTime::setDueDateTime(const QDateTime &dateTime)
+ {
+     if (dateTime != dueDateTime()) {
+-        m_detail.setValue(QOrganizerTodoTime::FieldDueDateTime, dateTime.toUTC());
++        m_detail.setValue(QOrganizerTodoTime::FieldDueDateTime, dateTime);
+         emit valueChanged();
+     }
+ }
+ 
+ QDateTime QDeclarativeOrganizerTodoTime::dueDateTime() const
+ {
+-    return m_detail.value<QDateTime>(QOrganizerTodoTime::FieldDueDateTime).toLocalTime();
++    return m_detail.value<QDateTime>(QOrganizerTodoTime::FieldDueDateTime);
+ }
+ 
+ 
+-- 
+2.7.4
+

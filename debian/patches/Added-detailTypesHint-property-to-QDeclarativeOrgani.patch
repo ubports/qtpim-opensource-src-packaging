@@ -1,0 +1,86 @@
+From c444286c2a9aee6f98ec4219378afb90db03c709 Mon Sep 17 00:00:00 2001
+From: Renato Araujo Oliveira Filho <renato.filho@canonical.com>
+Date: Thu, 26 Mar 2015 11:49:19 -0300
+Subject: [PATCH] Added 'detailTypesHint' property to
+ QDeclarativeOrganizerItemFetchHint.
+
+Allow filter OrganizerItem details fetched on a qml model query.
+
+Change-Id: I169cf511cd3073dbc0162e6228b900efb1e98250
+---
+ .../qdeclarativeorganizeritemfetchhint.cpp         | 29 ++++++++++++++++++++++
+ .../qdeclarativeorganizeritemfetchhint_p.h         |  4 +++
+ 2 files changed, 33 insertions(+)
+
+diff --git a/src/imports/organizer/qdeclarativeorganizeritemfetchhint.cpp b/src/imports/organizer/qdeclarativeorganizeritemfetchhint.cpp
+index 0de4f82..ce01d5a 100644
+--- a/src/imports/organizer/qdeclarativeorganizeritemfetchhint.cpp
++++ b/src/imports/organizer/qdeclarativeorganizeritemfetchhint.cpp
+@@ -41,6 +41,8 @@
+ 
+ #include "qdeclarativeorganizeritemfetchhint_p.h"
+ 
++#include <QtCore/qset.h>
++
+ QTORGANIZER_USE_NAMESPACE
+ 
+ QT_BEGIN_NAMESPACE
+@@ -100,6 +102,33 @@ void QDeclarativeOrganizerItemFetchHint::setOptimizationHints(OptimizationHints
+ }
+ 
+ /*!
++  \qmlproperty list<int> FetchHint::detailTypesHint
++
++  This property holds a list of organizer item detail types
++  the manager should (at a minimum) retrieve when fetching contacts.
++  */
++QList<int> QDeclarativeOrganizerItemFetchHint::detailTypesHint() const
++{
++    QList<int> savedList;
++    foreach (const QOrganizerItemDetail::DetailType &detailTypeHint, d.detailTypesHint())
++        savedList << static_cast<int>(detailTypeHint);
++
++    return savedList;
++}
++
++void QDeclarativeOrganizerItemFetchHint::setDetailTypesHint(const QList<int> &detailTypes)
++{
++    if (detailTypes.toSet() != detailTypesHint().toSet()) {
++        QList<QOrganizerItemDetail::DetailType> convertedDetailTypes;
++        foreach (const int detailType, detailTypes)
++            convertedDetailTypes << static_cast<QOrganizerItemDetail::DetailType>(detailType);
++
++        d.setDetailTypesHint(convertedDetailTypes);
++        emit fetchHintChanged();
++    }
++}
++
++/*!
+     \internal
+  */
+ QOrganizerItemFetchHint QDeclarativeOrganizerItemFetchHint::fetchHint() const
+diff --git a/src/imports/organizer/qdeclarativeorganizeritemfetchhint_p.h b/src/imports/organizer/qdeclarativeorganizeritemfetchhint_p.h
+index 42d44cc..fa4d64e 100644
+--- a/src/imports/organizer/qdeclarativeorganizeritemfetchhint_p.h
++++ b/src/imports/organizer/qdeclarativeorganizeritemfetchhint_p.h
+@@ -54,6 +54,7 @@ class QDeclarativeOrganizerItemFetchHint : public QObject
+ {
+     Q_OBJECT
+ 
++    Q_PROPERTY(QList<int> detailTypesHint READ detailTypesHint WRITE setDetailTypesHint NOTIFY fetchHintChanged )
+     Q_PROPERTY(OptimizationHints optimizationHints READ optimizationHints WRITE setOptimizationHints NOTIFY fetchHintChanged)
+ 
+     Q_ENUMS(OptimizationHint)
+@@ -72,6 +73,9 @@ public:
+     OptimizationHints optimizationHints() const;
+     void setOptimizationHints(OptimizationHints hints);
+ 
++    QList<int> detailTypesHint() const;
++    void setDetailTypesHint(const QList<int> &detailTypes);
++
+     QOrganizerItemFetchHint fetchHint() const;
+     void setFetchHint(const QOrganizerItemFetchHint &fetchHint);
+ 
+-- 
+2.1.4
+

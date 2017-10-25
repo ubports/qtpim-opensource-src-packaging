@@ -1,0 +1,2 @@
+usr/lib/*/libQt5Contacts.so.*
+usr/lib/*/qt5/plugins/contacts/libqtcontacts_memory.so

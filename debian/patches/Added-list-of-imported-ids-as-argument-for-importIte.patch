@@ -1,0 +1,225 @@
+From 4c0b26cf7fa81c04aba5a1874a8f700a3acbe2ce Mon Sep 17 00:00:00 2001
+From: Renato Araujo Oliveira Filho <renato.filho@canonical.com>
+Date: Fri, 22 Aug 2014 18:50:30 -0300
+Subject: [PATCH] Added list of imported ids as argument for importItems.
+
+The ids can be used to know which items was successful imported/inserted into the model.
+
+Change-Id: I3fd66377d53844dfd8ad377304893c7f3413ad1a
+Reviewed-by: Alex Blasche <alexander.blasche@digia.com>
+---
+ src/imports/contacts/qdeclarativecontactmodel.cpp  | 40 ++++++++++++++++++++--
+ src/imports/contacts/qdeclarativecontactmodel_p.h  |  2 +-
+ .../organizer/qdeclarativeorganizermodel.cpp       | 28 ++++++++++-----
+ .../organizer/qdeclarativeorganizermodel_p.h       |  2 +-
+ .../tst_contacts_export_import_signaling_e2e.qml   |  4 +++
+ .../tst_organizer_versit_export_import_e2e.qml     |  4 +++
+ 6 files changed, 67 insertions(+), 13 deletions(-)
+
+diff --git a/src/imports/contacts/qdeclarativecontactmodel.cpp b/src/imports/contacts/qdeclarativecontactmodel.cpp
+index cefd716..43a2cea 100644
+--- a/src/imports/contacts/qdeclarativecontactmodel.cpp
++++ b/src/imports/contacts/qdeclarativecontactmodel.cpp
+@@ -306,6 +306,35 @@ static QString urlToLocalFileName(const QUrl& url)
+ }
+ 
+ /*!
++  \qmlproperty enumeration ContactModel::ImportError
++
++  Defines the errors cases for \l ContactModel::importContacts() -function.
++
++  \list
++  \li ContactModel::ImportNoError             Completed successfully, no error.
++  \li ContactModel::ImportUnspecifiedError    Unspecified error.
++  \li ContactModel::ImportIOError             Input/output error.
++  \li ContactModel::ImportOutOfMemoryError    Out of memory error.
++  \li ContactModel::ImportNotReadyError       Not ready for importing. Only one import operation can be active at a time.
++  \li ContactModel::ImportParseError          Error during parsing.
++  \endlist
++*/
++
++/*!
++  \qmlsignal ContactModel::onImportCompleted(ImportError error, URL url, list<string> ids)
++
++  This signal is emitted, when \l ContactModel::importContacts() completes. The success of operation
++  can be seen on \a error which is defined in \l ContactModel::ImportError. \a url indicates the
++  file, which was imported. \a ids contains the imported contacts ids.
++
++  If the operation was successful, contacts are now imported to backend. If \l ContactModel::autoUpdate
++  is enabled, \l ContactModel::modelChanged will be emitted when imported contacts are also visible on
++  \l ContactModel's data model.
++
++  \sa ContactModel::importContacts
++ */
++
++/*!
+   \qmlmethod void ContactModel::importContacts(url url, list<string> profiles)
+ 
+   Import contacts from a vcard by the given \a url and optional \a profiles.
+@@ -344,7 +373,7 @@ void QDeclarativeContactModel::importContacts(const QUrl& url, const QStringList
+             importError = ImportIOError;
+         }
+     }
+-    emit importCompleted(importError, url);
++    emit importCompleted(importError, url, QStringList());
+ }
+ 
+ /*!
+@@ -551,15 +580,22 @@ void QDeclarativeContactModel::startImport(QVersitReader::State state)
+         delete d->m_reader.device();
+         d->m_reader.setDevice(0);
+ 
++        QStringList ids;
++
+         if (d->m_manager) {
+             if (!d->m_manager->saveContacts(&contacts)) {
+                 if (d->m_error != d->m_manager->error()) {
+                     d->m_error = d->m_manager->error();
+                     emit errorChanged();
+                 }
++            } else {
++                foreach (const QContact &c, contacts) {
++                    ids << c.id().toString();
++                }
+             }
+         }
+-        emit importCompleted(QDeclarativeContactModel::ImportError(d->m_reader.error()), d->m_lastImportUrl);
++
++        emit importCompleted(QDeclarativeContactModel::ImportError(d->m_reader.error()), d->m_lastImportUrl, ids);
+     }
+ }
+ 
+diff --git a/src/imports/contacts/qdeclarativecontactmodel_p.h b/src/imports/contacts/qdeclarativecontactmodel_p.h
+index 89ef912..a3acdf8 100644
+--- a/src/imports/contacts/qdeclarativecontactmodel_p.h
++++ b/src/imports/contacts/qdeclarativecontactmodel_p.h
+@@ -156,7 +156,7 @@ signals:
+     void sortOrdersChanged();
+     void autoUpdateChanged();
+     void exportCompleted(ExportError error, QUrl url);
+-    void importCompleted(ImportError error, QUrl url);
++    void importCompleted(ImportError error, QUrl url, const QStringList &ids);
+     void contactsFetched(int requestId, const QVariantList &fetchedContacts);
+ 
+ public slots:
+diff --git a/src/imports/organizer/qdeclarativeorganizermodel.cpp b/src/imports/organizer/qdeclarativeorganizermodel.cpp
+index 8df7bf7..83c5b50 100644
+--- a/src/imports/organizer/qdeclarativeorganizermodel.cpp
++++ b/src/imports/organizer/qdeclarativeorganizermodel.cpp
+@@ -421,7 +421,7 @@ void QDeclarativeOrganizerModel::setEndPeriod(const QDateTime& end)
+   Defines the errors cases for \l OrganizerModel::importItems() -function.
+ 
+   \list
+-  \li OrganizerModel::ImportNoError             Completed succesfully, no error.
++  \li OrganizerModel::ImportNoError             Completed successfully, no error.
+   \li OrganizerModel::ImportUnspecifiedError    Unspecified error.
+   \li OrganizerModel::ImportIOError             Input/output error.
+   \li OrganizerModel::ImportOutOfMemoryError    Out of memory error.
+@@ -431,15 +431,17 @@ void QDeclarativeOrganizerModel::setEndPeriod(const QDateTime& end)
+ */
+ 
+ /*!
+-  \qmlsignal OrganizerModel::onImportCompleted()
++  \qmlsignal OrganizerModel::onImportCompleted(ImportError error, URL url, list<string> ids)
+ 
+   This signal is emitted, when \l OrganizerModel::importItems() completes. The success of operation
+   can be seen on \a error which is defined in \l OrganizerModel::ImportError. \a url indicates the
+-  file, which was imported.
++  file, which was imported. \a ids contains the imported items ids.
+ 
+-  If the operation was succesful, items are now imported to backend. If \l OrganizerModel::autoUpdate
++  If the operation was successful, items are now imported to backend. If \l OrganizerModel::autoUpdate
+   is enabled, \l OrganizerModel::modelChanged will be emitted when imported items are also visible on
+   \l OrganizerModel's data model.
++
++  \sa OrganizerModel::importItems
+  */
+ 
+ /*!
+@@ -479,7 +481,7 @@ void QDeclarativeOrganizerModel::importItems(const QUrl& url, const QStringList
+   }
+ 
+     // If cannot startReading because already running then report the import error now
+-    emit importCompleted(importError, url);
++    emit importCompleted(importError, url, QStringList());
+ }
+ 
+ /*!
+@@ -730,6 +732,8 @@ void QDeclarativeOrganizerModel::startImport(QVersitReader::State state)
+ {
+     Q_D(QDeclarativeOrganizerModel);
+     if (state == QVersitReader::FinishedState || state == QVersitReader::CanceledState) {
++        QStringList ids;
++
+         if (!d->m_reader->results().isEmpty()) {
+             QVersitOrganizerImporter importer;
+             importer.importDocument(d->m_reader->results().at(0));
+@@ -737,12 +741,18 @@ void QDeclarativeOrganizerModel::startImport(QVersitReader::State state)
+             delete d->m_reader->device();
+             d->m_reader->setDevice(0);
+ 
+-            if (d->m_manager && !d->m_manager->saveItems(&items) && d->m_error != d->m_manager->error()) {
+-                d->m_error = d->m_manager->error();
+-                emit errorChanged();
++            if (d->m_manager && !d->m_manager->saveItems(&items)) {
++                if (d->m_error != d->m_manager->error()) {
++                    d->m_error = d->m_manager->error();
++                    emit errorChanged();
++                }
++            } else {
++                foreach (const QOrganizerItem i, items) {
++                    ids << i.id().toString();
++                }
+             }
+         }
+-        emit importCompleted(QDeclarativeOrganizerModel::ImportError(d->m_reader->error()), d->m_lastImportUrl);
++        emit importCompleted(QDeclarativeOrganizerModel::ImportError(d->m_reader->error()), d->m_lastImportUrl, ids);
+     }
+ }
+ 
+diff --git a/src/imports/organizer/qdeclarativeorganizermodel_p.h b/src/imports/organizer/qdeclarativeorganizermodel_p.h
+index ee8407e..e240dd4 100644
+--- a/src/imports/organizer/qdeclarativeorganizermodel_p.h
++++ b/src/imports/organizer/qdeclarativeorganizermodel_p.h
+@@ -187,7 +187,7 @@ signals:
+     void collectionsChanged();
+     void itemsFetched(int requestId, const QVariantList &fetchedItems);
+     void exportCompleted(ExportError error, QUrl url);
+-    void importCompleted(ImportError error, QUrl url);
++    void importCompleted(ImportError error, QUrl url, const QStringList &ids);
+ 
+ public slots:
+     void update();
+diff --git a/tests/auto/contacts/qmlcontacts/testcases/tst_contacts_export_import_signaling_e2e.qml b/tests/auto/contacts/qmlcontacts/testcases/tst_contacts_export_import_signaling_e2e.qml
+index 5e711ff..ff35799 100644
+--- a/tests/auto/contacts/qmlcontacts/testcases/tst_contacts_export_import_signaling_e2e.qml
++++ b/tests/auto/contacts/qmlcontacts/testcases/tst_contacts_export_import_signaling_e2e.qml
+@@ -172,6 +172,10 @@ ContactsSavingTestCase {
+         waitForTargetSignal(signalSpy2);
+         compare(importErrorCode, ContactModel.ImportNoError, 'signal finished state error');
+         compare(importFileName, vcardFilePath, 'signal finished state filename');
++
++        // Check if importComplete contains the correct contactId
++        var importedIds = signalSpy2.signalArguments[0][2]
++        compare(importedIds[0], model.contacts[model.contacts.length - 1].contactId)
+     }
+ 
+ 
+diff --git a/tests/auto/organizer/qmlorganizer/testcases/tst_organizer_versit_export_import_e2e.qml b/tests/auto/organizer/qmlorganizer/testcases/tst_organizer_versit_export_import_e2e.qml
+index d182cc6..4ecfb6c 100644
+--- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizer_versit_export_import_e2e.qml
++++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizer_versit_export_import_e2e.qml
+@@ -190,6 +190,10 @@ TestCase {
+                 "imported description different from the exported description.")
+         compare(importedEvent.displayLabel, "Event 1",
+                 "imported event label different to exported label.")
++
++        // Check if importComplete contains the correct itemId
++        var importedIds = importModelChangedSpy.signalArguments[0][2]
++        compare(importedIds[0], importedEvent.itemId)
+     }
+ 
+     function test_overlappingExportEmitsSignalWithError_data() {
+-- 
+2.6.2
+

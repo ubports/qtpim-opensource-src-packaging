@@ -1,0 +1,26 @@
+From c44db2f3bd523f8547a0d23a20f48ee517f95ff0 Mon Sep 17 00:00:00 2001
+From: Konstantin Ritt <ritt.ks@gmail.com>
+Date: Thu, 12 Feb 2015 08:10:51 +0400
+Subject: [PATCH] Fix build with Qt 5.5 (current dev)
+
+Change-Id: I56ce29162b13af56f06e11065748532de9e35dd0
+Reviewed-by: Matthew Vogt <matthew.vogt@qinetic.com.au>
+---
+ src/versit/qversitdocumentwriter_p.cpp |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/src/versit/qversitdocumentwriter_p.cpp b/src/versit/qversitdocumentwriter_p.cpp
+index 20f5503..9361725 100644
+--- a/src/versit/qversitdocumentwriter_p.cpp
++++ b/src/versit/qversitdocumentwriter_p.cpp
+@@ -41,6 +41,7 @@
+ 
+ #include "qversitdocumentwriter_p.h"
+ 
++#include <QtCore/qiodevice.h>
+ #include <QtCore/qtextcodec.h>
+ 
+ #include "qversitutils_p.h"
+-- 
+1.7.1
+

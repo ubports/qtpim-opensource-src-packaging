@@ -1,0 +1,17 @@
+Description: Fix declarative contact model crash while reload contacts
+ While moving contacts check the list size to see if is a valid position.
+
+--- qtpim-opensource-src-5.0~git20140515~29475884.orig/src/imports/contacts/qdeclarativecontactmodel.cpp
++++ qtpim-opensource-src-5.0~git20140515~29475884/src/imports/contacts/qdeclarativecontactmodel.cpp
+@@ -853,8 +853,9 @@ void QDeclarativeContactModel::fetchRequ
+ 
+                     int pos = d->m_contacts.indexOf(contact);
+                     if (pos != i) {
+-                        beginMoveRows(QModelIndex(), pos, pos, QModelIndex(), i);
+-                        d->m_contacts.move(pos, i);
++                        int targetPos = i < d->m_contacts.size() ? i : d->m_contacts.size() - 1;
++                        beginMoveRows(QModelIndex(), pos, pos, QModelIndex(), targetPos);
++                        d->m_contacts.move(pos, targetPos);
+                         endMoveRows();
+                     }
+                 }
