@@ -1,0 +1,79 @@
+diff --git a/src/contacts/details/qcontactdetails.cpp b/src/contacts/details/qcontactdetails.cpp
+index c439bed..12aca98 100644
+--- a/src/contacts/details/qcontactdetails.cpp
++++ b/src/contacts/details/qcontactdetails.cpp
+@@ -61,19 +61,6 @@
+ 
+ QT_BEGIN_NAMESPACE_CONTACTS
+ 
+-/* We use offsetof to determine the offset to member fields
+- * in each builtin detail type private class.
+- * This is technically undefined behavior according to the
+- * CPP98 spec, as the classes in question are non-POD.
+- * However, they do not have any virtual functions, nor any
+- * private or protected non-static data, nor do they use
+- * multiple inheritance or virtual inheritance otherwise.
+- * As such, all modern compilers do implement the class
+- * layouts as if they were POD, and the offsetof macro
+- * does indeed work in our case. */
+-QT_WARNING_PUSH
+-QT_WARNING_DISABLE_CLANG("-Winvalid-offsetof")
+-QT_WARNING_DISABLE_GCC("-Winvalid-offsetof")
+ 
+ 
+ /* template docs:
+@@ -3585,6 +3572,4 @@ QContactDetail& QContactDetail::assign(const QContactDetail& other, DetailType e
+     return *this;
+ }
+ 
+-QT_WARNING_POP /* -Winvalid-offsetof */
+-
+ QT_END_NAMESPACE_CONTACTS
+diff --git a/src/imports/contacts/qdeclarativecontactrelationship.cpp b/src/imports/contacts/qdeclarativecontactrelationship.cpp
+index c64a9bd..971d285 100644
+--- a/src/imports/contacts/qdeclarativecontactrelationship.cpp
++++ b/src/imports/contacts/qdeclarativecontactrelationship.cpp
+@@ -147,7 +147,6 @@ void QDeclarativeContactRelationship::setRelationshipType(const QVariant& relati
+             break;
+         default:
+             //unknown type
+-            qmlWarning(this) << tr("unknown relationship type:") << relationshipType;
+             break;
+         }
+     } else {
+diff --git a/src/imports/contacts/qdeclarativecontactrelationshipmodel.cpp b/src/imports/contacts/qdeclarativecontactrelationshipmodel.cpp
+index afcf38f..b97d911 100644
+--- a/src/imports/contacts/qdeclarativecontactrelationshipmodel.cpp
++++ b/src/imports/contacts/qdeclarativecontactrelationshipmodel.cpp
+@@ -416,7 +416,6 @@ void QDeclarativeContactRelationshipModel::relationshipsRemoved()
+                     endRemoveRows();
+                 } else {
+                     //impossible?
+-                    qmlWarning(this) << tr("this relationship '") << row << tr("' was already removed!");
+                 }
+             }
+         }
+diff --git a/src/imports/organizer/qdeclarativeorganizermodel.cpp b/src/imports/organizer/qdeclarativeorganizermodel.cpp
+index 08cc46a..22e8c4d 100644
+--- a/src/imports/organizer/qdeclarativeorganizermodel.cpp
++++ b/src/imports/organizer/qdeclarativeorganizermodel.cpp
+@@ -1334,7 +1334,6 @@ void QDeclarativeOrganizerModel::removeItems(const QStringList& ids)
+     // FIXME: no special format for occurrence ids
+     foreach (const QString& id, ids) {
+         if (id.startsWith(QString("qtorganizer:occurrence"))) {
+-            qmlWarning(this) << tr("Can't remove an occurrence item, please modify the parent item's recurrence rule instead!");
+             continue;
+         }
+         QOrganizerItemId itemId = QOrganizerItemId::fromString(id);
+diff --git a/src/imports/organizer/qdeclarativeorganizerrecurrencerule.cpp b/src/imports/organizer/qdeclarativeorganizerrecurrencerule.cpp
+index b03165b..aaab6fa 100644
+--- a/src/imports/organizer/qdeclarativeorganizerrecurrencerule.cpp
++++ b/src/imports/organizer/qdeclarativeorganizerrecurrencerule.cpp
+@@ -129,7 +129,6 @@ void QDeclarativeOrganizerRecurrenceRule::setLimit(const QVariant &value)
+         }
+     } else {
+         // TODO throw an error event
+-        qmlWarning(this) << tr("Invalid recurrence rule limit; value ,") <<  value << tr(", did not match one of the types: date, integer or double");
+     }
+ }
+ 

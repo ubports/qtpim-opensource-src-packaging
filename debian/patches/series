@@ -2,3 +2,4 @@ revert_module_version.patch
 Avoid-crash-while-parsing-vcards-from-different-threads.patch
 0001-Add-a-recurrence-id-field-into-QOrganizerItemId.patch
 Does-not-convert-datetime-properties-to-UTC.patch
+qt54.patch
