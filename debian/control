@@ -5,15 +5,16 @@ Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Build-Depends: dbus,
                debhelper (>= 9),
                pkg-kde-tools,
-               qml-module-qtquick2 (>= 5.5.0~),
-               qml-module-qttest (>= 5.5.0~),
-               qtbase5-private-dev (>= 5.5.0~),
-               qtdeclarative5-private-dev (>= 5.5.0~),
+               qml-module-qtquick2,
+               qml-module-qttest,
+               qt5-default,
+               qtbase5-private-dev,
+               qtdeclarative5-private-dev,
                xvfb,
-Build-Depends-Indep: libqt5sql5-sqlite (>= 5.5.0~),
-                     qtbase5-doc-html (>= 5.5.0~),
-                     qtdeclarative5-doc-html (>= 5.5.0~),
-                     qttools5-dev-tools (>= 5.5.0~)
+Build-Depends-Indep: libqt5sql5-sqlite,
+                     qtbase5-doc-html,
+                     qtdeclarative5-doc-html,
+                     qttools5-dev-tools,
 Standards-Version: 3.9.6
 Homepage: http://qt-project.org/
 Vcs-Bzr: lp:~kubuntu-packagers/kubuntu-packaging/qtpim-opensource-src
