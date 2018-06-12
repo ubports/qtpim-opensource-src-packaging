@@ -1,3 +1,9 @@
+qtpim-opensource-src (5.0~git20171109~0bd985b+ubports) xenial; urgency=medium
+
+  * Update to latest QtPim.
+
+ -- Alberto Mardegan <mardy@users.sourceforge.net>  Fri, 10 Nov 2017 17:45:40 +0300
+
 qtpim-opensource-src (5.0~git20140515~29475885-0ubuntu24~5ubports2) xenial; urgency=medium
 
   * Bump version
