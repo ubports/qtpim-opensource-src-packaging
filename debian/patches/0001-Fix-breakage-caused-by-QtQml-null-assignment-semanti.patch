@@ -1,0 +1,82 @@
+From 70733640ccdd61b48ae3141880d05b28a6cfb1e8 Mon Sep 17 00:00:00 2001
+From: Chris Adams <chris.adams@jollamobile.com>
+Date: Thu, 8 Sep 2016 13:54:42 +1000
+Subject: [PATCH 01/15] Fix breakage caused by QtQml "null" assignment
+ semantics change in 5.8
+
+Previously, assigning a "null" value to a QVariant Q_PROPERTY from
+JavaScript within QML would cause the QVariant to contain a value
+whose type was QMetaType::VoidStar.  The semantics of this operation
+changed in Qt 5.8 so that now the QVariant will contain a value
+whose type is QMetaType::Nullptr (a new type added in Qt 5.8).
+
+This commit ensures that we handle this change via #if.
+
+Change-Id: Iaa4238998b0b3f4c4f36f2ff31501eba2ce132d4
+Reviewed-by: Jake Petroules <jake.petroules@qt.io>
+---
+ .../organizer/qdeclarativeorganizerrecurrencerule.cpp     | 3 +++
+ .../qversitcontactimporter/tst_qversitcontactimporter.cpp | 4 ++++
+ .../tst_qversitorganizerimporter.cpp                      | 8 ++++++++
+ 3 files changed, 15 insertions(+)
+
+diff --git a/src/imports/organizer/qdeclarativeorganizerrecurrencerule.cpp b/src/imports/organizer/qdeclarativeorganizerrecurrencerule.cpp
+index 0bf635ef..bc0d8b58 100644
+--- a/src/imports/organizer/qdeclarativeorganizerrecurrencerule.cpp
++++ b/src/imports/organizer/qdeclarativeorganizerrecurrencerule.cpp
+@@ -95,6 +95,9 @@ QDeclarativeOrganizerRecurrenceRule::Frequency QDeclarativeOrganizerRecurrenceRu
+ void QDeclarativeOrganizerRecurrenceRule::setLimit(const QVariant &value)
+ {
+     if (!value.isValid() ||
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
++        (static_cast<QMetaType::Type>(value.type()) == QMetaType::Nullptr) ||
++#endif
+         (static_cast<QMetaType::Type>(value.type()) == QMetaType::VoidStar && value.value<void *>() == 0)) {
+         if (m_rule.limitType() != QOrganizerRecurrenceRule::NoLimit) {
+             m_rule.clearLimit();
+diff --git a/tests/auto/versit/qversitcontactimporter/tst_qversitcontactimporter.cpp b/tests/auto/versit/qversitcontactimporter/tst_qversitcontactimporter.cpp
+index 2871572a..88531418 100644
+--- a/tests/auto/versit/qversitcontactimporter/tst_qversitcontactimporter.cpp
++++ b/tests/auto/versit/qversitcontactimporter/tst_qversitcontactimporter.cpp
+@@ -1572,7 +1572,11 @@ void tst_QVersitContactImporter::testExtendedDetail_data()
+     {
+         QTest::newRow("null denoting an empty variant")
+                 << QString("name")
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
++                << QVariant(static_cast<QVariant::Type>(QMetaType::Nullptr))
++#else
+                 << QVariant()
++#endif
+                 << jsonArrayWith.arg("null")
+                 << true;
+         QTest::newRow("compact json with extra whitespace removed")
+diff --git a/tests/auto/versitorganizer/qversitorganizerimporter/tst_qversitorganizerimporter.cpp b/tests/auto/versitorganizer/qversitorganizerimporter/tst_qversitorganizerimporter.cpp
+index 67376f43..7dbe0f4d 100644
+--- a/tests/auto/versitorganizer/qversitorganizerimporter/tst_qversitorganizerimporter.cpp
++++ b/tests/auto/versitorganizer/qversitorganizerimporter/tst_qversitorganizerimporter.cpp
+@@ -36,6 +36,10 @@
+ #include "tst_qversitorganizerimporter.h"
+ #include <QtTest/QtTest>
+ 
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
++#include <cstddef>
++#endif
++
+ QTORGANIZER_USE_NAMESPACE
+ QTVERSITORGANIZER_USE_NAMESPACE
+ 
+@@ -1815,7 +1819,11 @@ void tst_QVersitOrganizerImporter::testExtendedDetail_data()
+     {
+         QTest::newRow("null denoting an empty variant")
+                 << QString("name")
++#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
++                << QVariant::fromValue<std::nullptr_t>(nullptr)
++#else
+                 << QVariant()
++#endif
+                 << jsonArrayWith.arg("null")
+                 << true;
+         QTest::newRow("compact json with extra whitespace removed")
+-- 
+2.17.1
+

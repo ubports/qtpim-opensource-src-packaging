@@ -17,3 +17,4 @@ Does-not-convert-datetime-properties-to-UTC.patch
 Install-QtOrganizer-example-applications.patch
 qt58_nullptr.patch
 fix_versitreader_test.patch
+0001-Fix-breakage-caused-by-QtQml-null-assignment-semanti.patch
