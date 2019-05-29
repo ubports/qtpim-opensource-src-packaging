@@ -1,0 +1,158 @@
+From a0f588e27aa61e068279012135348417b9e80c10 Mon Sep 17 00:00:00 2001
+From: Chris Adams <chris.adams@jollamobile.com>
+Date: Fri, 17 May 2019 15:44:58 +1000
+Subject: [PATCH] Add label group field to display label detail
+
+Modern UIs often display contacts in sections grouped by the first
+letter of their first (or last, depending on platform and locale
+preferences) name.
+
+This commit adds a label group field to the display label detail
+which allows a locale-specific label group to be stored for each
+contact and exposed to clients.
+
+Change-Id: I40f20fd7e8861e74618c5d0a76fc3c2b8119dfc0
+---
+ src/contacts/details/qcontactdetails.cpp           | 40 ++++++++++++++++++----
+ src/contacts/details/qcontactdisplaylabel.h        |  6 +++-
+ .../qcontactdetails/tst_qcontactdetails.cpp        |  5 +++
+ 3 files changed, 44 insertions(+), 7 deletions(-)
+
+diff --git a/src/contacts/details/qcontactdetails.cpp b/src/contacts/details/qcontactdetails.cpp
+index c439bed..de86c89 100644
+--- a/src/contacts/details/qcontactdetails.cpp
++++ b/src/contacts/details/qcontactdetails.cpp
+@@ -1242,8 +1242,9 @@ class QContactDisplayLabelPrivate : public QContactDetailBuiltinPrivate<QContact
+ {
+ public:
+     QString m_label;
++    QString m_labelGroup;
+ 
+-    enum { FieldCount = 1 };
++    enum { FieldCount = 2 };
+ 
+     QContactDisplayLabelPrivate() : QContactDetailBuiltinPrivate<QContactDisplayLabelPrivate>(QContactDisplayLabel::Type) {}
+ };
+@@ -1251,6 +1252,7 @@ public:
+ template<>
+ const QContactDetailBuiltinPrivateBase::Member QContactDetailBuiltinPrivate<QContactDisplayLabelPrivate>::s_members[] = {
+     { QContactDetailBuiltinPrivateBase::String, offsetof(QContactDisplayLabelPrivate, m_label) },
++    { QContactDetailBuiltinPrivateBase::String, offsetof(QContactDisplayLabelPrivate, m_labelGroup) },
+ };
+ 
+ /*!
+@@ -1262,14 +1264,15 @@ const QContactDetail::DetailType QContactDisplayLabel::Type(QContactType::TypeDi
+ /*!
+    \enum QContactDisplayLabel::DisplayLabelField
+    This enumeration defines the fields supported by QContactDisplayLabel.
+-   \value FieldLabel The value stored in this field contains the displaylabel.
+-   \sa label(), setLabel()
++   \value FieldLabel The value stored in this field contains the display label.
++   \value FieldLabelGroup The value stored in this field contains the label group (section character)
++   \sa label(), setLabel(), setLabelGroup(), labelGroup()
+  */
+ 
+ /*!
+    \fn QContactDisplayLabel::setLabel(const QString& displayLabel)
+-   Sets the displayLabel of the contact which is stored in this detail to \a displayLabel.
+-   displayLabel can be for example the first name of a contact.
++   Sets the display label of the contact which is stored in this detail to \a displayLabel.
++   The display label may be equivalent to the formatted name of the contact.
+  */
+ void QContactDisplayLabel::setLabel(const QString& _value)
+ {
+@@ -1278,13 +1281,38 @@ void QContactDisplayLabel::setLabel(const QString& _value)
+ 
+ /*!
+    \fn QContactDisplayLabel::label() const
+-   Returns the displayLabel of the contact which is stored in this detail.
++   Returns the display label of the contact which is stored in this detail.
+  */
+ QString QContactDisplayLabel::label() const
+ {
+     return reinterpret_cast<const QContactDisplayLabelPrivate*>(d.constData())->memberValue<QString>(QContactDisplayLabel::FieldLabel);
+ }
+ 
++/*!
++   \fn QContactDisplayLabel::setLabelGroup(const QString& group)
++   Sets the display label group for the contact which is stored in this detail to \a group.
++
++   This is usually the first character of the display label, but may instead
++   be the first character of either the first name or last name of the contact,
++   depending on the platform settings.
++
++   The display label group is primarily used for display in sectionised views such
++   as fast-scroll ribbons.
++ */
++void QContactDisplayLabel::setLabelGroup(const QString& _value)
++{
++    reinterpret_cast<QContactDisplayLabelPrivate*>(d.data())->setMemberValue<QString>(QContactDisplayLabel::FieldLabelGroup, _value);
++}
++
++/*!
++   \fn QContactDisplayLabel::labelGroup() const
++   Returns the display label group of the contact which is stored in this detail.
++ */
++QString QContactDisplayLabel::labelGroup() const
++{
++    return reinterpret_cast<const QContactDisplayLabelPrivate*>(d.constData())->memberValue<QString>(QContactDisplayLabel::FieldLabelGroup);
++}
++
+ 
+ /* ==================== QContactGender ======================= */
+ 
+diff --git a/src/contacts/details/qcontactdisplaylabel.h b/src/contacts/details/qcontactdisplaylabel.h
+index 152717d..6aba5fb 100644
+--- a/src/contacts/details/qcontactdisplaylabel.h
++++ b/src/contacts/details/qcontactdisplaylabel.h
+@@ -57,12 +57,16 @@ public:
+ #endif
+ 
+     enum DisplayLabelField {
+-        FieldLabel = 0
++        FieldLabel = 0,
++        FieldLabelGroup
+     };
+ 
+     void setLabel(const QString& displayLabel);
+     QString label() const;
+ 
++    void setLabelGroup(const QString& displayLabelGroup);
++    QString labelGroup() const;
++
+     static QContactFilter match(const QString& label);
+ };
+ 
+diff --git a/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp b/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp
+index a74fa7d..0916c3c 100644
+--- a/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp
++++ b/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp
+@@ -367,13 +367,17 @@ void tst_QContactDetails::displayLabel()
+ 
+     // test property set
+     d1.setLabel("1234");
++    d1.setLabelGroup("1");
+     QCOMPARE(d1.label(), QString("1234"));
+     QCOMPARE(d1.value(QContactDisplayLabel::FieldLabel).toString(), QString("1234"));
++    QCOMPARE(d1.labelGroup(), QString("1"));
++    QCOMPARE(d1.value(QContactDisplayLabel::FieldLabelGroup).toString(), QString("1"));
+ 
+     // test property add
+     QVERIFY(c.saveDetail(&d1));
+     QCOMPARE(c.details(QContactDisplayLabel::Type).count(), 1);
+     QCOMPARE(QContactDisplayLabel(c.details(QContactDisplayLabel::Type).value(0)).label(), d1.label());
++    QCOMPARE(QContactDisplayLabel(c.details(QContactDisplayLabel::Type).value(0)).labelGroup(), d1.labelGroup());
+ 
+     // test property update
+     d1.setValue(QContactDisplayLabel::FieldContext, QContactDetail::ContextWork);
+@@ -381,6 +385,7 @@ void tst_QContactDetails::displayLabel()
+     QVERIFY(c.saveDetail(&d1));
+     QCOMPARE(c.details(QContactDisplayLabel::Type).value(0).value(QContactDisplayLabel::FieldContext).value<QList<int> >(), QList<int>() << QContactDetail::ContextWork);
+     QCOMPARE(c.details(QContactDisplayLabel::Type).value(0).value(QContactDisplayLabel::FieldLabel).toString(), QString("12345"));
++    QCOMPARE(c.details(QContactDisplayLabel::Type).value(0).value(QContactDisplayLabel::FieldLabelGroup).toString(), QString("1"));
+ 
+     // test property remove
+     QVERIFY(c.removeDetail(&d1));
+-- 
+2.7.4
+
