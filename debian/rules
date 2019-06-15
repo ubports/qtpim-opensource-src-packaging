@@ -44,4 +44,4 @@ override_dh_auto_install:
 	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/qt5/plugins/organizer/libqtorganizer_skeleton.so
 
 override_dh_auto_test:
-	xvfb-run -a -s "-screen 0 1024x768x24" dh_auto_test -- QT_PLUGIN_PATH=$(CURDIR)/plugins LD_LIBRARY_PATH=$(CURDIR)/lib QT_LOGGING_RULES="default.debug=true"
+	xvfb-run -a -s "-screen 0 1024x768x24" dh_auto_test -- QML2_IMPORT_PATH=$(CURDIR)/qml QT_PLUGIN_PATH=$(CURDIR)/plugins LD_LIBRARY_PATH=$(CURDIR)/lib QT_LOGGING_RULES="default.debug=true"
