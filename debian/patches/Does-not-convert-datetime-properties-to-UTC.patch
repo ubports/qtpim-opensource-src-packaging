@@ -12,11 +12,11 @@ Change-Id: Ic21dec1d7cfda6ce1e70615d9d7574a7fddc445a
  .../organizer/qdeclarativeorganizeritemdetail.cpp  | 32 +++++++++++-----------
  1 file changed, 16 insertions(+), 16 deletions(-)
 
-diff --git a/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp b/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
-index 40474b4..f39aa03 100644
---- a/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
-+++ b/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
-@@ -236,14 +236,14 @@ bool QDeclarativeOrganizerEventTime::isAllDay()
+Index: qtpim/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
+===================================================================
+--- qtpim.orig/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
++++ qtpim/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
+@@ -242,14 +242,14 @@ bool QDeclarativeOrganizerEventTime::isA
  void QDeclarativeOrganizerEventTime::setStartDateTime(const QDateTime &datetime)
  {
       if (datetime != startDateTime()) {
@@ -33,7 +33,7 @@ index 40474b4..f39aa03 100644
  }
  
  /*!
-@@ -254,14 +254,14 @@ QDateTime QDeclarativeOrganizerEventTime::startDateTime() const
+@@ -260,14 +260,14 @@ QDateTime QDeclarativeOrganizerEventTime
  void QDeclarativeOrganizerEventTime::setEndDateTime(const QDateTime &datetime)
  {
      if (datetime != endDateTime()) {
@@ -50,7 +50,7 @@ index 40474b4..f39aa03 100644
  }
  
  
-@@ -1146,14 +1146,14 @@ QDeclarativeOrganizerItemDetail::DetailType QDeclarativeOrganizerItemTimestamp::
+@@ -1169,14 +1169,14 @@ QDeclarativeOrganizerItemDetail::DetailT
  void QDeclarativeOrganizerItemTimestamp::setCreated(const QDateTime &timestamp)
  {
      if (timestamp != created()) {
@@ -67,7 +67,7 @@ index 40474b4..f39aa03 100644
  }
  
  /*!
-@@ -1164,14 +1164,14 @@ QDateTime QDeclarativeOrganizerItemTimestamp::created() const
+@@ -1187,14 +1187,14 @@ QDateTime QDeclarativeOrganizerItemTimes
  void QDeclarativeOrganizerItemTimestamp::setLastModified(const QDateTime &timestamp)
  {
      if (timestamp != lastModified()) {
@@ -84,7 +84,7 @@ index 40474b4..f39aa03 100644
  }
  
  
-@@ -1277,13 +1277,13 @@ QDeclarativeOrganizerItemDetail::DetailType QDeclarativeOrganizerJournalTime::ty
+@@ -1300,13 +1300,13 @@ QDeclarativeOrganizerItemDetail::DetailT
  void QDeclarativeOrganizerJournalTime::setEntryDateTime(const QDateTime &datetime)
  {
      if (datetime != entryDateTime()) {
@@ -100,7 +100,7 @@ index 40474b4..f39aa03 100644
  }
  
  
-@@ -1352,14 +1352,14 @@ int QDeclarativeOrganizerTodoProgress::percentageComplete() const
+@@ -1375,14 +1375,14 @@ int QDeclarativeOrganizerTodoProgress::p
  void QDeclarativeOrganizerTodoProgress::setFinishedDateTime(const QDateTime &datetime)
  {
      if (datetime != finishedDateTime()) {
@@ -117,7 +117,7 @@ index 40474b4..f39aa03 100644
  }
  
  /*!
-@@ -1448,14 +1448,14 @@ bool QDeclarativeOrganizerTodoTime::isAllDay()
+@@ -1471,14 +1471,14 @@ bool QDeclarativeOrganizerTodoTime::isAl
  void QDeclarativeOrganizerTodoTime::setStartDateTime(const QDateTime &datetime)
  {
      if (datetime != startDateTime()) {
@@ -134,7 +134,7 @@ index 40474b4..f39aa03 100644
  }
  
  /*!
-@@ -1466,14 +1466,14 @@ QDateTime QDeclarativeOrganizerTodoTime::startDateTime() const
+@@ -1489,14 +1489,14 @@ QDateTime QDeclarativeOrganizerTodoTime:
  void QDeclarativeOrganizerTodoTime::setDueDateTime(const QDateTime &dateTime)
  {
      if (dateTime != dueDateTime()) {
@@ -151,6 +151,3 @@ index 40474b4..f39aa03 100644
  }
  
  
--- 
-2.7.4
-

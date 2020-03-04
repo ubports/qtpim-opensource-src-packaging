@@ -18,11 +18,11 @@ Change-Id: I40f20fd7e8861e74618c5d0a76fc3c2b8119dfc0
  .../qcontactdetails/tst_qcontactdetails.cpp        |  5 +++
  3 files changed, 44 insertions(+), 7 deletions(-)
 
-diff --git a/src/contacts/details/qcontactdetails.cpp b/src/contacts/details/qcontactdetails.cpp
-index c439bed..de86c89 100644
---- a/src/contacts/details/qcontactdetails.cpp
-+++ b/src/contacts/details/qcontactdetails.cpp
-@@ -1242,8 +1242,9 @@ class QContactDisplayLabelPrivate : public QContactDetailBuiltinPrivate<QContact
+Index: qtpim/src/contacts/details/qcontactdetails.cpp
+===================================================================
+--- qtpim.orig/src/contacts/details/qcontactdetails.cpp
++++ qtpim/src/contacts/details/qcontactdetails.cpp
+@@ -1242,8 +1242,9 @@ class QContactDisplayLabelPrivate : publ
  {
  public:
      QString m_label;
@@ -41,7 +41,7 @@ index c439bed..de86c89 100644
  };
  
  /*!
-@@ -1262,14 +1264,15 @@ const QContactDetail::DetailType QContactDisplayLabel::Type(QContactType::TypeDi
+@@ -1262,14 +1264,15 @@ const QContactDetail::DetailType QContac
  /*!
     \enum QContactDisplayLabel::DisplayLabelField
     This enumeration defines the fields supported by QContactDisplayLabel.
@@ -61,7 +61,7 @@ index c439bed..de86c89 100644
   */
  void QContactDisplayLabel::setLabel(const QString& _value)
  {
-@@ -1278,13 +1281,38 @@ void QContactDisplayLabel::setLabel(const QString& _value)
+@@ -1278,13 +1281,38 @@ void QContactDisplayLabel::setLabel(cons
  
  /*!
     \fn QContactDisplayLabel::label() const
@@ -101,10 +101,10 @@ index c439bed..de86c89 100644
  
  /* ==================== QContactGender ======================= */
  
-diff --git a/src/contacts/details/qcontactdisplaylabel.h b/src/contacts/details/qcontactdisplaylabel.h
-index 152717d..6aba5fb 100644
---- a/src/contacts/details/qcontactdisplaylabel.h
-+++ b/src/contacts/details/qcontactdisplaylabel.h
+Index: qtpim/src/contacts/details/qcontactdisplaylabel.h
+===================================================================
+--- qtpim.orig/src/contacts/details/qcontactdisplaylabel.h
++++ qtpim/src/contacts/details/qcontactdisplaylabel.h
 @@ -57,12 +57,16 @@ public:
  #endif
  
@@ -123,10 +123,10 @@ index 152717d..6aba5fb 100644
      static QContactFilter match(const QString& label);
  };
  
-diff --git a/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp b/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp
-index a74fa7d..0916c3c 100644
---- a/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp
-+++ b/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp
+Index: qtpim/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp
+===================================================================
+--- qtpim.orig/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp
++++ qtpim/tests/auto/contacts/qcontactdetails/tst_qcontactdetails.cpp
 @@ -367,13 +367,17 @@ void tst_QContactDetails::displayLabel()
  
      // test property set
@@ -153,6 +153,3 @@ index a74fa7d..0916c3c 100644
  
      // test property remove
      QVERIFY(c.removeDetail(&d1));
--- 
-2.7.4
-

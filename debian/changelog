@@ -1,3 +1,9 @@
+qtpim-opensource-src (5.0~git20190618~8fec622-0ubports0) xenial; urgency=medium
+
+  * Update to upstream version 5.0~git20190618~8fec622 
+
+ -- Marius Gripsgard <marius@ubports.com>  Wed, 04 Mar 2020 23:52:22 +0100
+
 qtpim-opensource-src (5.0~git20171109~0bd985b-0ubports0) xenial; urgency=medium
 
   * Update to latest QtPim.

@@ -34,11 +34,11 @@ Change-Id: I52b874517b84aa621d897a836a2b6d5206f26977
  .../qorganizermanager/tst_qorganizermanager.cpp    |  58 ++--
  21 files changed, 660 insertions(+), 265 deletions(-)
 
-diff --git a/src/imports/organizer/qdeclarativeorganizeritem.cpp b/src/imports/organizer/qdeclarativeorganizeritem.cpp
-index f8d5421..74c286f 100644
---- a/src/imports/organizer/qdeclarativeorganizeritem.cpp
-+++ b/src/imports/organizer/qdeclarativeorganizeritem.cpp
-@@ -134,7 +134,7 @@ QQmlListProperty<QDeclarativeOrganizerItemDetail> QDeclarativeOrganizerItem::ite
+Index: qtpim/src/imports/organizer/qdeclarativeorganizeritem.cpp
+===================================================================
+--- qtpim.orig/src/imports/organizer/qdeclarativeorganizeritem.cpp
++++ qtpim/src/imports/organizer/qdeclarativeorganizeritem.cpp
+@@ -134,7 +134,7 @@ QQmlListProperty<QDeclarativeOrganizerIt
   */
  QString QDeclarativeOrganizerItem::itemId() const
  {
@@ -47,7 +47,7 @@ index f8d5421..74c286f 100644
  }
  
  /*!
-@@ -412,10 +412,26 @@ QOrganizerItem QDeclarativeOrganizerItem::item() const
+@@ -412,10 +412,26 @@ QOrganizerItem QDeclarativeOrganizerItem
  /*!
      \internal
   */
@@ -76,10 +76,10 @@ index f8d5421..74c286f 100644
  }
  
  /*!
-diff --git a/src/imports/organizer/qdeclarativeorganizeritem_p.h b/src/imports/organizer/qdeclarativeorganizeritem_p.h
-index f029305..c7ad296 100644
---- a/src/imports/organizer/qdeclarativeorganizeritem_p.h
-+++ b/src/imports/organizer/qdeclarativeorganizeritem_p.h
+Index: qtpim/src/imports/organizer/qdeclarativeorganizeritem_p.h
+===================================================================
+--- qtpim.orig/src/imports/organizer/qdeclarativeorganizeritem_p.h
++++ qtpim/src/imports/organizer/qdeclarativeorganizeritem_p.h
 @@ -114,7 +114,8 @@ public:
      void setItem(const QOrganizerItem &item);
      QOrganizerItem item() const;
@@ -90,11 +90,11 @@ index f029305..c7ad296 100644
  
      QDateTime itemStartTime() const;
      QDateTime itemEndTime() const;
-diff --git a/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp b/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
-index 8cabad6..1ee00d0 100644
---- a/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
-+++ b/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
-@@ -707,6 +707,23 @@ QString QDeclarativeOrganizerItemParent::parentId() const
+Index: qtpim/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
+===================================================================
+--- qtpim.orig/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
++++ qtpim/src/imports/organizer/qdeclarativeorganizeritemdetail.cpp
+@@ -707,6 +707,23 @@ QString QDeclarativeOrganizerItemParent:
      return m_detail.value(QOrganizerItemParent::FieldParentId).value<QOrganizerItemId>().toString();
  }
  
@@ -118,11 +118,11 @@ index 8cabad6..1ee00d0 100644
  
  /*!
      \qmltype Priority
-diff --git a/src/imports/organizer/qdeclarativeorganizeritemdetail_p.h b/src/imports/organizer/qdeclarativeorganizeritemdetail_p.h
-index d4ae5c5..ca41644 100644
---- a/src/imports/organizer/qdeclarativeorganizeritemdetail_p.h
-+++ b/src/imports/organizer/qdeclarativeorganizeritemdetail_p.h
-@@ -290,11 +290,13 @@ class QDeclarativeOrganizerItemParent : public QDeclarativeOrganizerItemDetail
+Index: qtpim/src/imports/organizer/qdeclarativeorganizeritemdetail_p.h
+===================================================================
+--- qtpim.orig/src/imports/organizer/qdeclarativeorganizeritemdetail_p.h
++++ qtpim/src/imports/organizer/qdeclarativeorganizeritemdetail_p.h
+@@ -290,11 +290,13 @@ class QDeclarativeOrganizerItemParent :
  
      Q_PROPERTY(QDateTime originalDate READ originalDate WRITE setOriginalDate NOTIFY valueChanged)
      Q_PROPERTY(QString parentId READ parentId WRITE setParentId NOTIFY valueChanged)
@@ -136,7 +136,7 @@ index d4ae5c5..ca41644 100644
 +        FieldDetached = QOrganizerItemParent::FieldDetached,
      };
  
-     QDeclarativeOrganizerItemParent(QObject *parent = Q_NULLPTR);
+     QDeclarativeOrganizerItemParent(QObject *parent = nullptr);
 @@ -309,6 +311,9 @@ public:
      void setParentId(const QString &newParentId);
      QString parentId() const;
@@ -147,10 +147,10 @@ index d4ae5c5..ca41644 100644
  Q_SIGNALS:
      void valueChanged();
  };
-diff --git a/src/imports/organizer/qdeclarativeorganizermodel.cpp b/src/imports/organizer/qdeclarativeorganizermodel.cpp
-index eaeef1c..08cc46a 100644
---- a/src/imports/organizer/qdeclarativeorganizermodel.cpp
-+++ b/src/imports/organizer/qdeclarativeorganizermodel.cpp
+Index: qtpim/src/imports/organizer/qdeclarativeorganizermodel.cpp
+===================================================================
+--- qtpim.orig/src/imports/organizer/qdeclarativeorganizermodel.cpp
++++ qtpim/src/imports/organizer/qdeclarativeorganizermodel.cpp
 @@ -50,6 +50,7 @@
  #include <QtOrganizer/qorganizeritemdetails.h>
  #include <QtOrganizer/qorganizeritemrequests.h>
@@ -159,7 +159,7 @@ index eaeef1c..08cc46a 100644
  
  #include <QtVersitOrganizer/qversitorganizerimporter.h>
  #include <QtVersitOrganizer/qversitorganizerexporter.h>
-@@ -788,6 +789,16 @@ bool QDeclarativeOrganizerModel::itemHasRecurrence(const QOrganizerItem& oi) con
+@@ -788,6 +789,16 @@ bool QDeclarativeOrganizerModel::itemHas
      return false;
  }
  
@@ -176,7 +176,7 @@ index eaeef1c..08cc46a 100644
  QDeclarativeOrganizerItem* QDeclarativeOrganizerModel::createItem(const QOrganizerItem& item)
  {
      QDeclarativeOrganizerItem* di;
-@@ -1135,10 +1146,10 @@ QStringList QDeclarativeOrganizerModel::itemIds(const QDateTime &start, const QD
+@@ -1135,10 +1146,10 @@ QStringList QDeclarativeOrganizerModel::
      Q_D(QDeclarativeOrganizerModel);
      //TODO: quick search this
      QStringList ids;
@@ -189,7 +189,7 @@ index eaeef1c..08cc46a 100644
                  continue;
              if ( (item->itemStartTime() >= start && item->itemStartTime() <= end)
                   || (item->itemEndTime() >= start && item->itemEndTime() <= end)
-@@ -1148,13 +1159,13 @@ QStringList QDeclarativeOrganizerModel::itemIds(const QDateTime &start, const QD
+@@ -1148,13 +1159,13 @@ QStringList QDeclarativeOrganizerModel::
      } else if (!start.isNull()) {
          // only a valid start date is valid
          foreach (QDeclarativeOrganizerItem* item, d->m_items) {
@@ -205,7 +205,7 @@ index eaeef1c..08cc46a 100644
                  ids << item->itemId();
          }
      }
-@@ -1213,7 +1224,6 @@ void QDeclarativeOrganizerModel::requestUpdated()
+@@ -1213,7 +1224,6 @@ void QDeclarativeOrganizerModel::request
          // full update: first go through new items and check if they
          // existed earlier. if they did, use the existing declarative wrapper.
          // otherwise create new declarative item.
@@ -213,7 +213,7 @@ index eaeef1c..08cc46a 100644
          QList<QDeclarativeOrganizerItem *> newList;
          QHash<QString, QDeclarativeOrganizerItem *> newItemIdHash;
          QHash<QString, QDeclarativeOrganizerItem *>::iterator iterator;
-@@ -1226,39 +1236,31 @@ void QDeclarativeOrganizerModel::requestUpdated()
+@@ -1226,39 +1236,31 @@ void QDeclarativeOrganizerModel::request
          for (i = 0; i < items.size(); i++) {
              item = items[i];
              idString = item.id().toString();
@@ -266,7 +266,7 @@ index eaeef1c..08cc46a 100644
          d->m_modelChangedTimer.start();
      }
  }
-@@ -1395,34 +1397,44 @@ void QDeclarativeOrganizerModel::onRequestStateChanged(QOrganizerAbstractRequest
+@@ -1395,34 +1397,44 @@ void QDeclarativeOrganizerModel::onReque
      request->deleteLater();
  }
  
@@ -333,7 +333,7 @@ index eaeef1c..08cc46a 100644
              }
          }
      }
-@@ -1465,9 +1477,10 @@ void QDeclarativeOrganizerModel::onItemsModified(const QList<QPair<QOrganizerIte
+@@ -1465,9 +1477,10 @@ void QDeclarativeOrganizerModel::onItems
          fetchRequest->setManager(d->m_manager);
          fetchRequest->setStartDate(d->m_startPeriod);
          fetchRequest->setEndDate(d->m_endPeriod);
@@ -345,7 +345,7 @@ index eaeef1c..08cc46a 100644
          d->m_notifiedItems.insert(fetchRequest, addedAndChangedItems);
  
          fetchRequest->start();
-@@ -1476,14 +1489,36 @@ void QDeclarativeOrganizerModel::onItemsModified(const QList<QPair<QOrganizerIte
+@@ -1476,14 +1489,36 @@ void QDeclarativeOrganizerModel::onItems
  
  /*!
      \internal
@@ -385,7 +385,7 @@ index eaeef1c..08cc46a 100644
      Q_D(QDeclarativeOrganizerModel);
      if (state != QOrganizerAbstractRequest::FinishedState)
          return;
-@@ -1493,143 +1528,71 @@ void QDeclarativeOrganizerModel::onItemsModifiedFetchRequestStateChanged(QOrgani
+@@ -1493,143 +1528,71 @@ void QDeclarativeOrganizerModel::onItems
  
      checkError(request);
  
@@ -578,10 +578,10 @@ index eaeef1c..08cc46a 100644
  }
  
  /*!
-diff --git a/src/imports/organizer/qdeclarativeorganizermodel_p.h b/src/imports/organizer/qdeclarativeorganizermodel_p.h
-index fffd41e..4fea531 100644
---- a/src/imports/organizer/qdeclarativeorganizermodel_p.h
-+++ b/src/imports/organizer/qdeclarativeorganizermodel_p.h
+Index: qtpim/src/imports/organizer/qdeclarativeorganizermodel_p.h
+===================================================================
+--- qtpim.orig/src/imports/organizer/qdeclarativeorganizermodel_p.h
++++ qtpim/src/imports/organizer/qdeclarativeorganizermodel_p.h
 @@ -218,8 +218,11 @@ private slots:
  
  
@@ -594,11 +594,11 @@ index fffd41e..4fea531 100644
      QDeclarativeOrganizerItem* createItem(const QOrganizerItem& item);
      void checkError(const QOrganizerAbstractRequest *request);
  
-diff --git a/src/organizer/details/qorganizeritemdetails.cpp b/src/organizer/details/qorganizeritemdetails.cpp
-index edc4200..194b8c0 100644
---- a/src/organizer/details/qorganizeritemdetails.cpp
-+++ b/src/organizer/details/qorganizeritemdetails.cpp
-@@ -362,6 +362,7 @@ void QOrganizerItemGuid::setGuid(const QString &guid)
+Index: qtpim/src/organizer/details/qorganizeritemdetails.cpp
+===================================================================
+--- qtpim.orig/src/organizer/details/qorganizeritemdetails.cpp
++++ qtpim/src/organizer/details/qorganizeritemdetails.cpp
+@@ -362,6 +362,7 @@ void QOrganizerItemGuid::setGuid(const Q
      \value FieldParentId      The value stored describes the ID of the item's parent item.
      \value FieldOriginalDate  The value stored describes the original date of this instance or exception
                                according to the recurrent series of the parent item is stored.
@@ -606,7 +606,7 @@ index edc4200..194b8c0 100644
   */
  
  /*!
-@@ -396,6 +397,22 @@ void QOrganizerItemParent::setOriginalDate(const QDate &date)
+@@ -396,6 +397,22 @@ void QOrganizerItemParent::setOriginalDa
      setValue(FieldOriginalDate, date);
  }
  
@@ -629,10 +629,10 @@ index edc4200..194b8c0 100644
  
  /*!
      \class QOrganizerJournalTime
-diff --git a/src/organizer/details/qorganizeritemparent.h b/src/organizer/details/qorganizeritemparent.h
-index ca96ce2..dad629f 100644
---- a/src/organizer/details/qorganizeritemparent.h
-+++ b/src/organizer/details/qorganizeritemparent.h
+Index: qtpim/src/organizer/details/qorganizeritemparent.h
+===================================================================
+--- qtpim.orig/src/organizer/details/qorganizeritemparent.h
++++ qtpim/src/organizer/details/qorganizeritemparent.h
 @@ -60,7 +60,8 @@ public:
  
      enum ParentField {
@@ -653,11 +653,11 @@ index ca96ce2..dad629f 100644
  };
  
  QT_END_NAMESPACE_ORGANIZER
-diff --git a/src/organizer/qorganizeritemid.cpp b/src/organizer/qorganizeritemid.cpp
-index 4d2fa71..ad2e435 100644
---- a/src/organizer/qorganizeritemid.cpp
-+++ b/src/organizer/qorganizeritemid.cpp
-@@ -161,8 +161,8 @@ QString QOrganizerItemId::toString() const
+Index: qtpim/src/organizer/qorganizeritemid.cpp
+===================================================================
+--- qtpim.orig/src/organizer/qorganizeritemid.cpp
++++ qtpim/src/organizer/qorganizeritemid.cpp
+@@ -161,8 +161,8 @@ QString QOrganizerItemId::toString() con
  {
      if (!isNull()) {
          // Ensure the localId component has a valid string representation by hex encoding
@@ -668,7 +668,7 @@ index 4d2fa71..ad2e435 100644
      }
  
      return QString();
-@@ -178,10 +178,11 @@ QOrganizerItemId QOrganizerItemId::fromString(const QString &idString)
+@@ -178,10 +178,11 @@ QOrganizerItemId QOrganizerItemId::fromS
  {
      QString managerUri;
      QByteArray localId;
@@ -682,7 +682,7 @@ index 4d2fa71..ad2e435 100644
      }
  
      return QOrganizerItemId();
-@@ -194,8 +195,9 @@ QOrganizerItemId QOrganizerItemId::fromString(const QString &idString)
+@@ -194,8 +195,9 @@ QOrganizerItemId QOrganizerItemId::fromS
  */
  QByteArray QOrganizerItemId::toByteArray() const
  {
@@ -694,7 +694,7 @@ index 4d2fa71..ad2e435 100644
  
      return QByteArray();
  }
-@@ -210,9 +212,11 @@ QOrganizerItemId QOrganizerItemId::fromByteArray(const QByteArray &idData)
+@@ -210,9 +212,11 @@ QOrganizerItemId QOrganizerItemId::fromB
  {
      QString managerUri;
      QByteArray localId;
@@ -708,11 +708,11 @@ index 4d2fa71..ad2e435 100644
  
      return QOrganizerItemId();
  }
-diff --git a/src/organizer/qorganizeritemid.h b/src/organizer/qorganizeritemid.h
-index bdca8f8..68aa44b 100644
---- a/src/organizer/qorganizeritemid.h
-+++ b/src/organizer/qorganizeritemid.h
-@@ -52,21 +52,23 @@ class Q_ORGANIZER_EXPORT QOrganizerItemId
+Index: qtpim/src/organizer/qorganizeritemid.h
+===================================================================
+--- qtpim.orig/src/organizer/qorganizeritemid.h
++++ qtpim/src/organizer/qorganizeritemid.h
+@@ -52,21 +52,23 @@ class Q_ORGANIZER_EXPORT QOrganizerItemI
  {
  public:
      inline QOrganizerItemId() {}
@@ -765,11 +765,11 @@ index bdca8f8..68aa44b 100644
  
  #ifndef QT_NO_DATASTREAM
  Q_ORGANIZER_EXPORT QDataStream &operator<<(QDataStream &out, const QOrganizerItemId &id);
-diff --git a/src/organizer/qorganizermanager_p.cpp b/src/organizer/qorganizermanager_p.cpp
-index 96e410b..98dd7f5 100644
---- a/src/organizer/qorganizermanager_p.cpp
-+++ b/src/organizer/qorganizermanager_p.cpp
-@@ -388,24 +388,29 @@ QString QOrganizerManagerData::buildUri(const QString &managerName, const QMap<Q
+Index: qtpim/src/organizer/qorganizermanager_p.cpp
+===================================================================
+--- qtpim.orig/src/organizer/qorganizermanager_p.cpp
++++ qtpim/src/organizer/qorganizermanager_p.cpp
+@@ -389,24 +389,29 @@ QString QOrganizerManagerData::buildUri(
  
  /*!
      Parses the individual components of the given \a idData and fills the
@@ -806,7 +806,7 @@ index 96e410b..98dd7f5 100644
  
      return true;
  }
-@@ -416,13 +421,15 @@ bool QOrganizerManagerData::parseIdData(const QByteArray &idData, QString *manag
+@@ -417,13 +422,15 @@ bool QOrganizerManagerData::parseIdData(
      If \a localId is non-null, the generated ID string is suitable for
      passing to QOrganizerCollectionId::fromString() or QOrganizerItemId::fromString().
  */
@@ -825,7 +825,7 @@ index 96e410b..98dd7f5 100644
      return rv;
  }
  
-@@ -432,9 +439,9 @@ QByteArray QOrganizerManagerData::buildIdData(const QString &managerUri, const Q
+@@ -433,9 +440,9 @@ QByteArray QOrganizerManagerData::buildI
      If \a localId is non-null, the generated ID string is suitable for
      passing to QOrganizerCollectionId::fromString() or QOrganizerItemId::fromString().
  */
@@ -837,10 +837,10 @@ index 96e410b..98dd7f5 100644
  }
  
  /*!
-diff --git a/src/organizer/qorganizermanager_p.h b/src/organizer/qorganizermanager_p.h
-index 3f3f00e..a406ca0 100644
---- a/src/organizer/qorganizermanager_p.h
-+++ b/src/organizer/qorganizermanager_p.h
+Index: qtpim/src/organizer/qorganizermanager_p.h
+===================================================================
+--- qtpim.orig/src/organizer/qorganizermanager_p.h
++++ qtpim/src/organizer/qorganizermanager_p.h
 @@ -81,10 +81,10 @@ public:
      static bool parseUri(const QString &uriString, QString *managerName, QMap<QString, QString> *params, bool strict = true);
      static QString buildUri(const QString &managerName, const QMap<QString, QString> &params);
@@ -855,11 +855,11 @@ index 3f3f00e..a406ca0 100644
  
      static QString cachedUri(const QString &managerUri);
  
-diff --git a/src/organizer/qorganizermanagerengine.cpp b/src/organizer/qorganizermanagerengine.cpp
-index 338eb5d..e48f1c4 100644
---- a/src/organizer/qorganizermanagerengine.cpp
-+++ b/src/organizer/qorganizermanagerengine.cpp
-@@ -1308,6 +1308,10 @@ QOrganizerItem QOrganizerManagerEngine::generateOccurrence(const QOrganizerItem
+Index: qtpim/src/organizer/qorganizermanagerengine.cpp
+===================================================================
+--- qtpim.orig/src/organizer/qorganizermanagerengine.cpp
++++ qtpim/src/organizer/qorganizermanagerengine.cpp
+@@ -1308,6 +1308,10 @@ QOrganizerItem QOrganizerManagerEngine::
          instanceItem = QOrganizerTodoOccurrence();
      }
  
@@ -870,7 +870,7 @@ index 338eb5d..e48f1c4 100644
      instanceItem.setCollectionId(parentItem.collectionId());
  
      // XXX TODO: something better than this linear search...
-@@ -1322,12 +1326,11 @@ QOrganizerItem QOrganizerManagerEngine::generateOccurrence(const QOrganizerItem
+@@ -1322,12 +1326,11 @@ QOrganizerItem QOrganizerManagerEngine::
          }
      }
  
@@ -884,11 +884,11 @@ index 338eb5d..e48f1c4 100644
      occDetails.append(parentDetail);
  
      // save those details in the instance.
-diff --git a/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp b/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp
-index dcc0eea..b105b60 100644
---- a/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp
-+++ b/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp
-@@ -584,8 +584,9 @@ bool QOrganizerItemMemoryEngine::storeItem(QOrganizerItem* theOrganizerItem, QOr
+Index: qtpim/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp
+===================================================================
+--- qtpim.orig/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp
++++ qtpim/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp
+@@ -584,8 +584,9 @@ bool QOrganizerItemMemoryEngine::storeIt
              }
          }
      } else {
@@ -900,7 +900,7 @@ index dcc0eea..b105b60 100644
              // the ID is not empty, and it doesn't identify an existing organizer item in our database either.
              *error = QOrganizerManager::DoesNotExistError;
              return false;
-@@ -605,8 +606,7 @@ bool QOrganizerItemMemoryEngine::storeItem(QOrganizerItem* theOrganizerItem, QOr
+@@ -605,8 +606,7 @@ bool QOrganizerItemMemoryEngine::storeIt
  
          // if we're saving an exception occurrence, we need to add it's original date as an exdate to the parent.
          QOrganizerItemId parentId;
@@ -910,7 +910,7 @@ index dcc0eea..b105b60 100644
              // update the event or the todo by adding an EX-DATE which corresponds to the original date of the occurrence being saved.
              QOrganizerItemParent origin = theOrganizerItem->detail(QOrganizerItemDetail::TypeParent);
              parentId = origin.parentId();
-@@ -643,6 +643,10 @@ bool QOrganizerItemMemoryEngine::storeItem(QOrganizerItem* theOrganizerItem, QOr
+@@ -643,6 +643,10 @@ bool QOrganizerItemMemoryEngine::storeIt
                  d->m_idToItemHash.insert(parentId, parentItem); // replacement insert
                  changeSet.insertChangedItem(parentId, detailMask); // is this correct?  it's an exception, so change parent?
              }
@@ -921,7 +921,7 @@ index dcc0eea..b105b60 100644
          }
  
          // if target collection id is null, set to default id.
-@@ -650,9 +654,12 @@ bool QOrganizerItemMemoryEngine::storeItem(QOrganizerItem* theOrganizerItem, QOr
+@@ -650,9 +654,12 @@ bool QOrganizerItemMemoryEngine::storeIt
              targetCollectionId = defaultCollectionId();
  
          // update the organizer item - set its ID
@@ -937,7 +937,7 @@ index dcc0eea..b105b60 100644
          // finally, add the organizer item to our internal lists and return
          theOrganizerItem->setCollectionId(targetCollectionId);
          d->m_idToItemHash.insert(theOrganizerItemId, *theOrganizerItem);  // add organizer item to hash
-@@ -661,7 +668,10 @@ bool QOrganizerItemMemoryEngine::storeItem(QOrganizerItem* theOrganizerItem, QOr
+@@ -661,7 +668,10 @@ bool QOrganizerItemMemoryEngine::storeIt
              d->m_parentIdToChildIdHash.insert(parentId, theOrganizerItemId);
          }
          d->m_itemsInCollectionsHash.insert(targetCollectionId, theOrganizerItemId);
@@ -949,7 +949,7 @@ index dcc0eea..b105b60 100644
      }
  
      *error = QOrganizerManager::NoError;     // successful.
-@@ -913,8 +923,27 @@ bool QOrganizerItemMemoryEngine::removeItem(const QOrganizerItemId& organizerite
+@@ -913,8 +923,27 @@ bool QOrganizerItemMemoryEngine::removeI
  {
      QHash<QOrganizerItemId, QOrganizerItem>::const_iterator hashIterator = d->m_idToItemHash.find(organizeritemId);
      if (hashIterator == d->m_idToItemHash.constEnd()) {
@@ -979,7 +979,7 @@ index dcc0eea..b105b60 100644
      }
  
      // if it is a child item, remove itself from the children hash
-@@ -961,13 +990,10 @@ bool QOrganizerItemMemoryEngine::removeOccurrence(const QOrganizerItem &organize
+@@ -961,13 +990,10 @@ bool QOrganizerItemMemoryEngine::removeO
          return false;
      } else {
          QOrganizerItem parentItem = hashIterator.value();
@@ -997,7 +997,7 @@ index dcc0eea..b105b60 100644
      }
      *error = QOrganizerManager::NoError;
      return true;
-@@ -1018,16 +1044,21 @@ bool QOrganizerItemMemoryEngine::removeItems(const QList<QOrganizerItem> *items,
+@@ -1018,16 +1044,21 @@ bool QOrganizerItemMemoryEngine::removeI
      QSet<QOrganizerItemId> removedParentIds;
      QOrganizerManager::Error operationError = QOrganizerManager::NoError;
      for (int i = 0; i < items->count(); i++) {
@@ -1024,7 +1024,7 @@ index dcc0eea..b105b60 100644
              removeItem(current.id(), changeSet, &tempError);
              if (tempError == QOrganizerManager::NoError && itemHasReccurence(current))
                  removedParentIds.insert(current.id());
-@@ -1488,6 +1519,36 @@ void QOrganizerItemMemoryEngine::performAsynchronousOperation(QOrganizerAbstract
+@@ -1488,6 +1519,36 @@ void QOrganizerItemMemoryEngine::perform
      d->emitSharedSignals(&changeSet);
  }
  
@@ -1058,13 +1058,13 @@ index dcc0eea..b105b60 100644
 +    return false;
 +}
 +
- #include "moc_qorganizeritemmemorybackend_p.cpp"
- 
  QT_END_NAMESPACE_ORGANIZER
-diff --git a/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h b/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h
-index 1bfbfb2..5560e1b 100644
---- a/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h
-+++ b/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h
+ 
+ #include "moc_qorganizeritemmemorybackend_p.cpp"
+Index: qtpim/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h
+===================================================================
+--- qtpim.orig/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h
++++ qtpim/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h
 @@ -218,6 +218,10 @@ private:
  
      void performAsynchronousOperation(QOrganizerAbstractRequest* request);
@@ -1076,10 +1076,10 @@ index 1bfbfb2..5560e1b 100644
      QOrganizerItemMemoryEngineData* d;
  };
  
-diff --git a/tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml b/tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml
-index 59ce047..db4d2b6 100644
---- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml
-+++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml
+Index: qtpim/tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml
+===================================================================
+--- qtpim.orig/tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml
++++ qtpim/tests/auto/organizer/qmlorganizer/testcases/tst_organizeremailreminder.qml
 @@ -174,12 +174,10 @@ Rectangle {
                  verify(detailRemovedEventDetailList.length == 0)
                  verify(removeEventDetail != undefined)
@@ -1094,10 +1094,10 @@ index 59ce047..db4d2b6 100644
              }
          }
      }
-diff --git a/tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml b/tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml
-index ae97121..b73f326 100644
---- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml
-+++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml
+Index: qtpim/tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml
+===================================================================
+--- qtpim.orig/tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml
++++ qtpim/tests/auto/organizer/qmlorganizer/testcases/tst_organizeritems.qml
 @@ -99,6 +99,7 @@ Rectangle {
                  verify(item2.displayLabel === "EditedEvent1");
  
@@ -1106,10 +1106,10 @@ index ae97121..b73f326 100644
                  model.removeItem(ids[0]);
                  utility.waitModelChange(0);
                  verify(model.itemCount === 0);
-diff --git a/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml b/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml
-index 6cde462..dde15ab 100644
---- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml
-+++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml
+Index: qtpim/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml
+===================================================================
+--- qtpim.orig/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml
++++ qtpim/tests/auto/organizer/qmlorganizer/testcases/tst_organizermodel.qml
 @@ -352,6 +352,196 @@ TestCase {
          component.destroy()
      }
@@ -1307,10 +1307,10 @@ index 6cde462..dde15ab 100644
      function test_organizermodel_error_data() {
          return utility.getManagerListData();
      }
-diff --git a/tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml b/tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml
-index ef7c914..aa8d4b5 100644
---- a/tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml
-+++ b/tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml
+Index: qtpim/tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml
+===================================================================
+--- qtpim.orig/tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml
++++ qtpim/tests/auto/organizer/qmlorganizer/testcases/tst_organizervisualreminder.qml
 @@ -173,12 +173,10 @@ Rectangle {
                  }
                  verify(detailRemovedEventDetailList.length == 0);
@@ -1325,10 +1325,10 @@ index ef7c914..aa8d4b5 100644
              }
          }
      }
-diff --git a/tests/auto/organizer/qorganizeritem/tst_qorganizeritem.cpp b/tests/auto/organizer/qorganizeritem/tst_qorganizeritem.cpp
-index 738fa13..82ac4a8 100644
---- a/tests/auto/organizer/qorganizeritem/tst_qorganizeritem.cpp
-+++ b/tests/auto/organizer/qorganizeritem/tst_qorganizeritem.cpp
+Index: qtpim/tests/auto/organizer/qorganizeritem/tst_qorganizeritem.cpp
+===================================================================
+--- qtpim.orig/tests/auto/organizer/qorganizeritem/tst_qorganizeritem.cpp
++++ qtpim/tests/auto/organizer/qorganizeritem/tst_qorganizeritem.cpp
 @@ -37,9 +37,11 @@
  
  QTORGANIZER_USE_NAMESPACE
@@ -1351,7 +1351,7 @@ index 738fa13..82ac4a8 100644
      void details();
      void displayLabel();
      void description();
-@@ -86,6 +89,31 @@ tst_QOrganizerItem::~tst_QOrganizerItem()
+@@ -86,6 +89,31 @@ tst_QOrganizerItem::~tst_QOrganizerItem(
  {
  }
  
@@ -1424,7 +1424,7 @@ index 738fa13..82ac4a8 100644
  }
  
  void tst_QOrganizerItem::idStringFunctions()
-@@ -627,6 +663,7 @@ void tst_QOrganizerItem::idStringFunctions()
+@@ -627,6 +663,7 @@ void tst_QOrganizerItem::idStringFunctio
      QOrganizerItemId id2(makeId("a", 1));
      QOrganizerItemId id3(makeId("b", 1));
      QOrganizerItemId id4(makeId("a", 2));
@@ -1432,7 +1432,7 @@ index 738fa13..82ac4a8 100644
      QVERIFY(qHash(id1) == qHash(id2));
      QVERIFY(qHash(id1) != qHash(id4));
  
-@@ -638,14 +675,27 @@ void tst_QOrganizerItem::idStringFunctions()
+@@ -638,14 +675,27 @@ void tst_QOrganizerItem::idStringFunctio
      QVERIFY(id1.toString() != id3.toString());
      QVERIFY(id1.toString() != id4.toString());
      QVERIFY(id3.toString() != id4.toString());
@@ -1505,11 +1505,11 @@ index 738fa13..82ac4a8 100644
      QVERIFY(QTypeInfo<QOrganizerItemId>::isComplex);
      QVERIFY(!QTypeInfo<QOrganizerItemId>::isStatic);
      QVERIFY(QTypeInfo<QOrganizerItemId>::isLarge);
-diff --git a/tests/auto/organizer/qorganizermanager/tst_qorganizermanager.cpp b/tests/auto/organizer/qorganizermanager/tst_qorganizermanager.cpp
-index 188a099..0d313e4 100644
---- a/tests/auto/organizer/qorganizermanager/tst_qorganizermanager.cpp
-+++ b/tests/auto/organizer/qorganizermanager/tst_qorganizermanager.cpp
-@@ -913,11 +913,13 @@ void tst_QOrganizerManager::addExceptions()
+Index: qtpim/tests/auto/organizer/qorganizermanager/tst_qorganizermanager.cpp
+===================================================================
+--- qtpim.orig/tests/auto/organizer/qorganizermanager/tst_qorganizermanager.cpp
++++ qtpim/tests/auto/organizer/qorganizermanager/tst_qorganizermanager.cpp
+@@ -913,11 +913,13 @@ void tst_QOrganizerManager::addException
          cm->itemOccurrences(event, QDateTime(QDate(2010, 1, 1), QTime(0, 0, 0)),
                                   QDateTime(QDate(2010, 2, 1), QTime(0, 0, 0)));
      QCOMPARE(items.size(), 3);
@@ -1525,7 +1525,7 @@ index 188a099..0d313e4 100644
      QCOMPARE(secondEvent.parentId(), event.id());
  
      // save a change to an occurrence's detail (ie. create an exception)
-@@ -930,7 +932,7 @@ void tst_QOrganizerManager::addExceptions()
+@@ -930,7 +932,7 @@ void tst_QOrganizerManager::addException
  
      // save a change to an occurrence's time
      QOrganizerEventOccurrence thirdEvent = static_cast<QOrganizerEventOccurrence>(items.at(2));
@@ -1534,7 +1534,7 @@ index 188a099..0d313e4 100644
      QCOMPARE(thirdEvent.parentId(), event.id());
      thirdEvent.setStartDateTime(QDateTime(QDate(2010, 1, 15), QTime(13, 0, 0)));
      thirdEvent.setEndDateTime(QDateTime(QDate(2010, 1, 15), QTime(14, 0, 0)));
-@@ -940,12 +942,11 @@ void tst_QOrganizerManager::addExceptions()
+@@ -940,12 +942,11 @@ void tst_QOrganizerManager::addException
                                       QDateTime(QDate(2010, 2, 1), QTime(0, 0, 0)));
      QCOMPARE(items.size(), 3); // shouldn't change the count.
  
@@ -1548,7 +1548,7 @@ index 188a099..0d313e4 100644
              foundFirst = true;
              firstItem = item;
          }
-@@ -964,19 +965,21 @@ void tst_QOrganizerManager::addExceptions()
+@@ -964,19 +965,21 @@ void tst_QOrganizerManager::addException
      // check that saving an exception doesn't change other items
      QVERIFY(foundFirst); // there should still be one "generated" occurrence
      QCOMPARE(firstItem.displayLabel(), QStringLiteral("meeting")); // and it should have the original label.
@@ -1575,7 +1575,7 @@ index 188a099..0d313e4 100644
  
      // remove persisted exception, it should not modify parent item's exception dates
      cm->removeItem(secondEvent.id());
-@@ -1016,7 +1019,7 @@ void tst_QOrganizerManager::modifyRecurrence()
+@@ -1016,7 +1019,7 @@ void tst_QOrganizerManager::modifyRecurr
      QCOMPARE(secondItem.type(), QOrganizerItemType::TypeEventOccurrence);
      QOrganizerEventOccurrence secondEvent = static_cast<QOrganizerEventOccurrence>(secondItem); // not sure this is the best way...
      QCOMPARE(secondEvent.startDateTime(), QDateTime(QDate(2011, 1, 1), QTime(11, 0, 0)));
@@ -1584,7 +1584,7 @@ index 188a099..0d313e4 100644
      QCOMPARE(secondEvent.parentId(), event.id());
  
      // save a change to an occurrence's detail (ie. create an exception)
-@@ -1028,7 +1031,7 @@ void tst_QOrganizerManager::modifyRecurrence()
+@@ -1028,7 +1031,7 @@ void tst_QOrganizerManager::modifyRecurr
  
      // save a change to an occurrence's time
      QOrganizerEventOccurrence thirdEvent = static_cast<QOrganizerEventOccurrence>(items.at(2));
@@ -1593,7 +1593,7 @@ index 188a099..0d313e4 100644
      QCOMPARE(thirdEvent.parentId(), event.id());
      thirdEvent.setStartDateTime(QDateTime(QDate(2012, 1, 2), QTime(15, 0, 0)));
      thirdEvent.setEndDateTime(QDateTime(QDate(2012, 1, 2), QTime(16, 0, 0)));
-@@ -1037,11 +1040,11 @@ void tst_QOrganizerManager::modifyRecurrence()
+@@ -1037,11 +1040,11 @@ void tst_QOrganizerManager::modifyRecurr
      items = cm->itemOccurrences(event);
      QCOMPARE(items.size(), 5); // shouldn't change the count.
  
@@ -1699,6 +1699,3 @@ index 188a099..0d313e4 100644
              }
          }
      }
--- 
-2.7.4
-
