@@ -3,3 +3,6 @@ Avoid-crash-while-parsing-vcards-from-different-threads.patch
 0001-Add-a-recurrence-id-field-into-QOrganizerItemId.patch
 Does-not-convert-datetime-properties-to-UTC.patch
 Add-label-group-field-to-display-label-detail.patch
+
+# ONLY NEEDED FOR QT VERSIONS <= 5.11 as the qvariant vas changed in 5.11
+0001-Revert-Adapt-to-new-QVariant-QDateTime-.toString-beh.patch

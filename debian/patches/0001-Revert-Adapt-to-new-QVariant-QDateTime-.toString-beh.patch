@@ -1,0 +1,256 @@
+From 08995388ccf7616f0830b3b5c11e039905dd0440 Mon Sep 17 00:00:00 2001
+From: Marius Gripsgard <marius@ubports.com>
+Date: Thu, 5 Mar 2020 00:24:07 +0100
+Subject: [PATCH] Revert "Adapt to new QVariant<QDateTime>().toString()
+ behavior"
+
+This reverts commit bfd521d0a159fc6adca7f9e58fb9285953780ae2.
+---
+ .../qcontactdetail/tst_qcontactdetail.cpp     |  8 +++----
+ .../testcases/tst_contactdetail.qml           | 21 +++++++------------
+ ...tst_contacts_export_import_details_e2e.qml |  2 +-
+ .../tst_qorganizeritemdetail.cpp              | 18 ++++++++--------
+ .../tst_qversitcontactexporter.cpp            |  6 +++---
+ .../tst_qversitorganizerexporter.cpp          |  6 +++---
+ 6 files changed, 27 insertions(+), 34 deletions(-)
+
+diff --git a/tests/auto/contacts/qcontactdetail/tst_qcontactdetail.cpp b/tests/auto/contacts/qcontactdetail/tst_qcontactdetail.cpp
+index c12e068e..27115c45 100644
+--- a/tests/auto/contacts/qcontactdetail/tst_qcontactdetail.cpp
++++ b/tests/auto/contacts/qcontactdetail/tst_qcontactdetail.cpp
+@@ -328,7 +328,7 @@ void tst_QContactDetail::values()
+     // string accessors with const char* key
+     QCOMPARE(p.value(QContactAddress::FieldStreet).toString(), QString("This is a string"));
+     QCOMPARE(p.value(QContactAddress::FieldLocality).toString(), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value(QContactAddress::FieldRegion).toString(), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value(QContactAddress::FieldRegion).toString(), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value(QContactAddress::FieldPostcode).toString(), QString("6"));
+     QCOMPARE(p.value(QContactAddress::FieldSubTypes).toString(), d.toString(Qt::ISODate));
+     QCOMPARE(p.value(QContactAddress::FieldPostOfficeBox).toString(), dt.toString(Qt::ISODate));
+@@ -344,7 +344,7 @@ void tst_QContactDetail::values()
+     /* Typed accessors, string first, const char* key */
+     QCOMPARE(p.value<QString>(QContactAddress::FieldStreet), QString("This is a string"));
+     QCOMPARE(p.value<QString>(QContactAddress::FieldLocality), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value<QString>(QContactAddress::FieldRegion), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value<QString>(QContactAddress::FieldRegion), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value<QString>(QContactAddress::FieldPostcode), QString("6"));
+     QCOMPARE(p.value<QString>(QContactAddress::FieldSubTypes), d.toString(Qt::ISODate));
+     QCOMPARE(p.value<QString>(QContactAddress::FieldPostOfficeBox), dt.toString(Qt::ISODate));
+@@ -419,7 +419,7 @@ void tst_QContactDetail::values()
+     /* String accessors */
+     QCOMPARE(p.value(QContactAddress::FieldStreet).toString(), QString("This is a string"));
+     QCOMPARE(p.value(QContactAddress::FieldLocality).toString(), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value(QContactAddress::FieldRegion).toString(), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value(QContactAddress::FieldRegion).toString(), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value(QContactAddress::FieldPostcode).toString(), QString("6"));
+     QCOMPARE(p.value(QContactAddress::FieldSubTypes).toString(), d.toString(Qt::ISODate));
+     QCOMPARE(p.value(QContactAddress::FieldPostOfficeBox).toString(), dt.toString(Qt::ISODate));
+@@ -427,7 +427,7 @@ void tst_QContactDetail::values()
+     /* Typed accessors, string first */
+     QCOMPARE(p.value<QString>(QContactAddress::FieldStreet), QString("This is a string"));
+     QCOMPARE(p.value<QString>(QContactAddress::FieldLocality), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value<QString>(QContactAddress::FieldRegion), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value<QString>(QContactAddress::FieldRegion), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value<QString>(QContactAddress::FieldPostcode), QString("6"));
+     QCOMPARE(p.value<QString>(QContactAddress::FieldSubTypes), d.toString(Qt::ISODate));
+     QCOMPARE(p.value<QString>(QContactAddress::FieldPostOfficeBox), dt.toString(Qt::ISODate));
+diff --git a/tests/auto/contacts/qmlcontacts/testcases/tst_contactdetail.qml b/tests/auto/contacts/qmlcontacts/testcases/tst_contactdetail.qml
+index 87899098..60259db5 100644
+--- a/tests/auto/contacts/qmlcontacts/testcases/tst_contactdetail.qml
++++ b/tests/auto/contacts/qmlcontacts/testcases/tst_contactdetail.qml
+@@ -197,16 +197,9 @@ TestCase {
+         compare(anniversary.calendarId, "myCalendarId")
+ 
+         //compare(anniversary.originalDate, "")
+-        var dateTime = new Date(2001, 4, 21)  // 21 May 2001
++        var dateTime = new Date(2001, 5, 21)  // 21 May 2001 14:13:09
+         anniversary.originalDate = dateTime
+-        // Round trip is not guaranteed to be stable, due to the fact
+-        // that ECMA262 Date does not support "Date-only" semantics.
+-        // While the originalDate property in C++ side contains the
+-        // appropriate QDate value, when converted back into JS Date
+-        // we find that it will have been converted to a Date which
+-        // matches 2001-05-21T00:00:00.000Z according to the local
+-        // timezone, e.g. 2001-05-21T10:00:00.000+10:00.
+-        //compare(anniversary.originalDate, dateTime)
++        compare(anniversary.originalDate, dateTime)
+ 
+         compare(anniversary.event, "")
+         anniversary.event = "myEvent"
+@@ -230,7 +223,7 @@ TestCase {
+ 
+ 
+     function test_birthday() {
+-        var dateTime = new Date(2001, 4, 21, 14, 13, 09)  // 21 May 2001 14:13:09
++        var dateTime = new Date(2001, 5, 21, 14, 13, 09)  // 21 May 2001 14:13:09
+         //compare(birthday.birthday, "")
+         birthday.birthday = dateTime;
+         compare(birthday.birthday, dateTime)
+@@ -361,14 +354,14 @@ TestCase {
+         location.speed = 30.0;
+         compare(location.speed, 30.0)
+ 
+-        var dateTime = new Date(2001, 4, 21, 14, 13, 09)  // 21 May 2001 14:13:09
++        var dateTime = new Date(2001, 5, 21, 14, 13, 09)  // 21 May 2001 14:13:09
+         location.timestamp = dateTime;
+         compare(location.timestamp, dateTime)
+     }
+ 
+ 
+     function test_globalpresence() {
+-        var dateTime = new Date(2001, 4, 21, 14, 13, 09)  // 21 May 2001 14:13:09
++        var dateTime = new Date(2001, 5, 21, 14, 13, 09)  // 21 May 2001 14:13:09
+         globalpresence.timestamp = dateTime;
+         compare(globalpresence.timestamp, dateTime)
+ 
+@@ -505,7 +498,7 @@ TestCase {
+     }
+ 
+     function test_presence() {
+-        var DateTime = new Date(2001, 4, 21)  // 21 May 2001
++        var DateTime = new Date(2001, 5, 21)  // 21 May 2001
+         presence.timestamp  = DateTime;
+         compare(presence.timestamp , DateTime)
+ 
+@@ -561,7 +554,7 @@ TestCase {
+ 
+ 
+     function test_timestamp() {
+-        var modifiedDateTime = new Date(2002, 4, 21)  // 21 May 2002
++        var modifiedDateTime = new Date(2002, 5, 21)  // 21 May 2001
+         timestamp.lastModified = modifiedDateTime;
+         compare(timestamp.lastModified, modifiedDateTime)
+     }
+diff --git a/tests/auto/contacts/qmlcontacts/testcases/tst_contacts_export_import_details_e2e.qml b/tests/auto/contacts/qmlcontacts/testcases/tst_contacts_export_import_details_e2e.qml
+index ee1b0e1d..785c8c91 100644
+--- a/tests/auto/contacts/qmlcontacts/testcases/tst_contacts_export_import_details_e2e.qml
++++ b/tests/auto/contacts/qmlcontacts/testcases/tst_contacts_export_import_details_e2e.qml
+@@ -371,7 +371,7 @@ ContactsSavingTestCase {
+                 // QML/V8 javascript Date.parse cannot be used to parse it,
+                 // since it interprets a date string without timezone as using UTC.
+                 compare(importedExtendedDetails[i].data,
+-                        Qt.formatDateTime(megaContact.extendedDetails[i].data, 'yyyy-MM-ddThh:mm:ss.zzz'), "extended detail data");
++                        Qt.formatDateTime(megaContact.extendedDetails[i].data, 'yyyy-MM-ddThh:mm:ss'), "extended detail data");
+             } else {
+                 compare(importedExtendedDetails[i].data, megaContact.extendedDetails[i].data, "extended detail data");
+             }
+diff --git a/tests/auto/organizer/qorganizeritemdetail/tst_qorganizeritemdetail.cpp b/tests/auto/organizer/qorganizeritemdetail/tst_qorganizeritemdetail.cpp
+index 6eda6fcc..bab5d6b9 100644
+--- a/tests/auto/organizer/qorganizeritemdetail/tst_qorganizeritemdetail.cpp
++++ b/tests/auto/organizer/qorganizeritemdetail/tst_qorganizeritemdetail.cpp
+@@ -329,7 +329,7 @@ void tst_QOrganizerItemDetail::values()
+     p.setValue(104, (int)6);
+ 
+     p.setValue(105, d.toString(Qt::ISODate));
+-    p.setValue(106, dt.toString(Qt::ISODateWithMs));
++    p.setValue(106, dt.toString(Qt::ISODate));
+ 
+     // Test the setter that takes a QString
+     p.setValue(107, "123");
+@@ -356,17 +356,17 @@ void tst_QOrganizerItemDetail::values()
+     QCOMPARE(p.value(103), QVariant(dt));
+     QCOMPARE(p.value(104), QVariant((int)6));
+     QCOMPARE(p.value(105), QVariant(d.toString(Qt::ISODate)));
+-    QCOMPARE(p.value(106), QVariant(dt.toString(Qt::ISODateWithMs)));
++    QCOMPARE(p.value(106), QVariant(dt.toString(Qt::ISODate)));
+     QCOMPARE(p.value(107), QVariant(QString("123")));
+     QCOMPARE(p.value(QOrganizerItemPriority::FieldPriority).toInt(), static_cast<int>(QOrganizerItemPriority::ExtremelyHighPriority));
+ 
+     /* Typed accessors */
+     QCOMPARE(p.value<QString>(101), QString("This is a string"));
+     QCOMPARE(p.value<QString>(102), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value<QString>(103), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value<QString>(103), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value<QString>(104), QString("6"));
+     QCOMPARE(p.value<QString>(105), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value<QString>(106), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value<QString>(106), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value<QString>(107), QString("123"));
+     QCOMPARE(p.value<int>(QOrganizerItemPriority::FieldPriority), static_cast<int>(QOrganizerItemPriority::ExtremelyHighPriority));
+ 
+@@ -426,7 +426,7 @@ void tst_QOrganizerItemDetail::values()
+     values.insert(104, (int)6);
+ 
+     values.insert(105, d.toString(Qt::ISODate));
+-    values.insert(106, dt.toString(Qt::ISODateWithMs));
++    values.insert(106, dt.toString(Qt::ISODate));
+     values.insert(107, "123");
+     values.insert(101, QString("This is a string"));
+ 
+@@ -448,19 +448,19 @@ void tst_QOrganizerItemDetail::values()
+     /* String accessors */
+     QCOMPARE(p.value(101).toString(), QString("This is a string"));
+     QCOMPARE(p.value(102).toString(), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value(103).toString(), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value(103).toString(), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value(104).toString(), QString("6"));
+     QCOMPARE(p.value(105).toString(), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value(106).toString(), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value(106).toString(), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value(107).toString(), QString("123"));
+ 
+     /* Typed accessors, string first */
+     QCOMPARE(p.value<QString>(101), QString("This is a string"));
+     QCOMPARE(p.value<QString>(102), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value<QString>(103), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value<QString>(103), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value<QString>(104), QString("6"));
+     QCOMPARE(p.value<QString>(105), d.toString(Qt::ISODate));
+-    QCOMPARE(p.value<QString>(106), dt.toString(Qt::ISODateWithMs));
++    QCOMPARE(p.value<QString>(106), dt.toString(Qt::ISODate));
+     QCOMPARE(p.value<QString>(107), QString("123"));
+ 
+     /* Now individual original types */
+diff --git a/tests/auto/versit/qversitcontactexporter/tst_qversitcontactexporter.cpp b/tests/auto/versit/qversitcontactexporter/tst_qversitcontactexporter.cpp
+index f2e21636..2061345a 100644
+--- a/tests/auto/versit/qversitcontactexporter/tst_qversitcontactexporter.cpp
++++ b/tests/auto/versit/qversitcontactexporter/tst_qversitcontactexporter.cpp
+@@ -1468,17 +1468,17 @@ void tst_QVersitContactExporter::testEncodeExtendedDetail_data()
+         QTest::newRow("datetime data (using local time)")
+                 << QString("name")
+                 << QVariant(QDateTime::fromString("1997-07-16T19:20:30.123+01:00", Qt::ISODate))
+-                << jsonArrayWithString.arg("1997-07-16T19:20:30.123+01:00")
++                << jsonArrayWithString.arg("1997-07-16T19:20:30+01:00")
+                 << true;
+         QTest::newRow("datetime data (using UTC)")
+                 << QString("name")
+                 << QVariant(QDateTime::fromString("1997-07-16T19:20:30.123+01:00", Qt::ISODate).toUTC())
+-                << jsonArrayWithString.arg("1997-07-16T18:20:30.123Z")
++                << jsonArrayWithString.arg("1997-07-16T18:20:30Z")
+                 << true;
+         QTest::newRow("datetime data (using local time with unspecified timezone)")
+                 << QString("name")
+                 << QVariant(QDateTime::fromString("1997-07-16T19:20:30", Qt::ISODate))
+-                << jsonArrayWithString.arg("1997-07-16T19:20:30.000")
++                << jsonArrayWithString.arg("1997-07-16T19:20:30")
+                 << true;
+     }
+ 
+diff --git a/tests/auto/versitorganizer/qversitorganizerexporter/tst_qversitorganizerexporter.cpp b/tests/auto/versitorganizer/qversitorganizerexporter/tst_qversitorganizerexporter.cpp
+index 18bda063..62029fcb 100644
+--- a/tests/auto/versitorganizer/qversitorganizerexporter/tst_qversitorganizerexporter.cpp
++++ b/tests/auto/versitorganizer/qversitorganizerexporter/tst_qversitorganizerexporter.cpp
+@@ -1537,17 +1537,17 @@ void tst_QVersitOrganizerExporter::testExtendedDetail_data()
+         QTest::newRow("datetime data (using local time)")
+                 << QString("name")
+                 << QVariant(QDateTime::fromString("1997-07-16T19:20:30.123+01:00", Qt::ISODate))
+-                << jsonArrayWithString.arg("1997-07-16T19:20:30.123+01:00")
++                << jsonArrayWithString.arg("1997-07-16T19:20:30+01:00")
+                 << true;
+         QTest::newRow("datetime data (using UTC)")
+                 << QString("name")
+                 << QVariant(QDateTime::fromString("1997-07-16T19:20:30.123+01:00", Qt::ISODate).toUTC())
+-                << jsonArrayWithString.arg("1997-07-16T18:20:30.123Z")
++                << jsonArrayWithString.arg("1997-07-16T18:20:30Z")
+                 << true;
+         QTest::newRow("datetime data (using local time with unspecified timezone)")
+                 << QString("name")
+                 << QVariant(QDateTime::fromString("1997-07-16T19:20:30", Qt::ISODate))
+-                << jsonArrayWithString.arg("1997-07-16T19:20:30.000")
++                << jsonArrayWithString.arg("1997-07-16T19:20:30")
+                 << true;
+     }
+ 
+-- 
+2.17.1
+
