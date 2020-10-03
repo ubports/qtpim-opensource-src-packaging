@@ -3,3 +3,6 @@ Avoid-crash-while-parsing-vcards-from-different-threads.patch
 0001-Add-a-recurrence-id-field-into-QOrganizerItemId.patch
 Does-not-convert-datetime-properties-to-UTC.patch
 Add-label-group-field-to-display-label-detail.patch
+0002-Provide-accessing-all-extended-metadata-from-collect.patch
+0003-Accessors-should-be-const.patch
+0004-Enforce-detail-access-constraints-in-contact-operati.patch

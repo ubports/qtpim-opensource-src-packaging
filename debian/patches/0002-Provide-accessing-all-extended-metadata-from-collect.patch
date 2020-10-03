@@ -1,0 +1,106 @@
+From 2ed3538c3202b3c84e4fa4e5c89110bba62a3866 Mon Sep 17 00:00:00 2001
+From: Chris Adams <chris.adams@jollamobile.com>
+Date: Fri, 17 May 2019 16:07:24 +1000
+Subject: [PATCH 2/4] Provide accessing all extended metadata from collections
+
+Task-number: QTBUG-75550
+---
+ src/contacts/qcontactcollection.cpp                       | 8 ++++++++
+ src/contacts/qcontactcollection.h                         | 1 +
+ src/organizer/qorganizercollection.cpp                    | 8 ++++++++
+ src/organizer/qorganizercollection.h                      | 1 +
+ .../qcontactcollection/tst_qcontactcollection.cpp         | 2 ++
+ .../qorganizercollection/tst_qorganizercollection.cpp     | 2 ++
+ 6 files changed, 22 insertions(+)
+
+diff --git a/src/contacts/qcontactcollection.cpp b/src/contacts/qcontactcollection.cpp
+index a07b48c6..7945b856 100644
+--- a/src/contacts/qcontactcollection.cpp
++++ b/src/contacts/qcontactcollection.cpp
+@@ -209,6 +209,14 @@ QVariant QContactCollection::extendedMetaData(const QString &key) const
+     return d->m_metaData.value(QContactCollection::KeyExtended).toMap().value(key);
+ }
+ 
++/*!
++    Returns all extended metadata of the collection.
++ */
++QVariantMap QContactCollection::extendedMetaData() const
++{
++    return d->m_metaData.value(QContactCollection::KeyExtended).toMap();
++}
++
+ /*!
+     Returns the meta data of the collection for the given \a key.
+  */
+diff --git a/src/contacts/qcontactcollection.h b/src/contacts/qcontactcollection.h
+index f04b0618..c20bc8f0 100644
+--- a/src/contacts/qcontactcollection.h
++++ b/src/contacts/qcontactcollection.h
+@@ -87,6 +87,7 @@ public:
+ 
+     void setExtendedMetaData(const QString &key, const QVariant &value);
+     QVariant extendedMetaData(const QString &key) const;
++    QVariantMap extendedMetaData() const;
+ 
+ private:
+     friend Q_CONTACTS_EXPORT uint qHash(const QContactCollection &key);
+diff --git a/src/organizer/qorganizercollection.cpp b/src/organizer/qorganizercollection.cpp
+index 21d83e45..1d313297 100644
+--- a/src/organizer/qorganizercollection.cpp
++++ b/src/organizer/qorganizercollection.cpp
+@@ -208,6 +208,14 @@ QVariant QOrganizerCollection::extendedMetaData(const QString &key) const
+     return d->m_metaData.value(QOrganizerCollection::KeyExtended).toMap().value(key);
+ }
+ 
++/*!
++    Returns all extended metadata of the collection.
++ */
++QVariantMap QOrganizerCollection::extendedMetaData() const
++{
++    return d->m_metaData.value(QOrganizerCollection::KeyExtended).toMap();
++}
++
+ /*!
+     Returns the meta data of the collection for the given \a key.
+  */
+diff --git a/src/organizer/qorganizercollection.h b/src/organizer/qorganizercollection.h
+index 15e44f85..2d38a38e 100644
+--- a/src/organizer/qorganizercollection.h
++++ b/src/organizer/qorganizercollection.h
+@@ -86,6 +86,7 @@ public:
+ 
+     void setExtendedMetaData(const QString &key, const QVariant &value);
+     QVariant extendedMetaData(const QString &key) const;
++    QVariantMap extendedMetaData() const;
+ 
+ private:
+     friend Q_ORGANIZER_EXPORT uint qHash(const QOrganizerCollection &key);
+diff --git a/tests/auto/contacts/qcontactcollection/tst_qcontactcollection.cpp b/tests/auto/contacts/qcontactcollection/tst_qcontactcollection.cpp
+index 5256196f..7a6d0a2d 100644
+--- a/tests/auto/contacts/qcontactcollection/tst_qcontactcollection.cpp
++++ b/tests/auto/contacts/qcontactcollection/tst_qcontactcollection.cpp
+@@ -75,6 +75,8 @@ void tst_QContactCollection::metaData()
+     QVERIFY(c.metaData().isEmpty());
+     c.setExtendedMetaData(QString(QStringLiteral("test")), 5);
+     QCOMPARE(c.extendedMetaData(QString(QStringLiteral("test"))).toInt(), 5);
++    QCOMPARE(c.extendedMetaData().keys(), QList<QString>() << QStringLiteral("test"));
++    QCOMPARE(c.extendedMetaData().value(QString(QStringLiteral("test"))).toInt(), 5);
+ 
+     QMap<QContactCollection::MetaDataKey, QVariant> mdm;
+     mdm.insert(QContactCollection::KeyName, QString(QStringLiteral("test2")));
+diff --git a/tests/auto/organizer/qorganizercollection/tst_qorganizercollection.cpp b/tests/auto/organizer/qorganizercollection/tst_qorganizercollection.cpp
+index ad0cb660..1eb98f91 100644
+--- a/tests/auto/organizer/qorganizercollection/tst_qorganizercollection.cpp
++++ b/tests/auto/organizer/qorganizercollection/tst_qorganizercollection.cpp
+@@ -77,6 +77,8 @@ void tst_QOrganizerCollection::metaData()
+     QVERIFY(c.metaData().isEmpty());
+     c.setExtendedMetaData(QString(QStringLiteral("test")), 5);
+     QCOMPARE(c.extendedMetaData(QString(QStringLiteral("test"))).toInt(), 5);
++    QCOMPARE(c.extendedMetaData().keys(), QList<QString>() << QStringLiteral("test"));
++    QCOMPARE(c.extendedMetaData().value(QString(QStringLiteral("test"))).toInt(), 5);
+ 
+     QMap<QOrganizerCollection::MetaDataKey, QVariant> mdm;
+     mdm.insert(QOrganizerCollection::KeyName, QString(QStringLiteral("test2")));
+-- 
+2.17.1
+

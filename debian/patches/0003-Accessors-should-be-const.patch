@@ -1,0 +1,297 @@
+From 4dda0bd703c11dd6fad8ddd46883b89f6558f962 Mon Sep 17 00:00:00 2001
+From: Chris Adams <chris.adams@jollamobile.com>
+Date: Wed, 1 Jul 2020 10:45:27 +1000
+Subject: [PATCH 3/4] Accessors should be const
+
+---
+ src/contacts/qcontactmanager.cpp                             | 4 ++--
+ src/contacts/qcontactmanager.h                               | 4 ++--
+ src/contacts/qcontactmanager_p.cpp                           | 1 +
+ src/contacts/qcontactmanagerengine.cpp                       | 4 ++--
+ src/contacts/qcontactmanagerengine.h                         | 4 ++--
+ src/organizer/qorganizermanager.cpp                          | 4 ++--
+ src/organizer/qorganizermanager.h                            | 4 ++--
+ src/organizer/qorganizermanagerengine.cpp                    | 4 ++--
+ src/organizer/qorganizermanagerengine.h                      | 4 ++--
+ src/plugins/contacts/memory/qcontactmemorybackend.cpp        | 4 ++--
+ src/plugins/contacts/memory/qcontactmemorybackend_p.h        | 4 ++--
+ src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp | 4 ++--
+ src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h | 4 ++--
+ src/plugins/organizer/skeleton/qorganizerskeleton.cpp        | 4 ++--
+ src/plugins/organizer/skeleton/qorganizerskeleton_p.h        | 4 ++--
+ 15 files changed, 29 insertions(+), 28 deletions(-)
+
+diff --git a/src/contacts/qcontactmanager.cpp b/src/contacts/qcontactmanager.cpp
+index 5d7b4347..919a7325 100644
+--- a/src/contacts/qcontactmanager.cpp
++++ b/src/contacts/qcontactmanager.cpp
+@@ -821,7 +821,7 @@ QContactCollectionId QContactManager::defaultCollectionId() const
+ /*!
+   Returns the collection identified by the given \a collectionId which is managed by this manager.
+  */
+-QContactCollection QContactManager::collection(const QContactCollectionId& collectionId)
++QContactCollection QContactManager::collection(const QContactCollectionId& collectionId) const
+ {
+     QContactManagerSyncOpErrorHolder h(this);
+     return d->m_engine->collection(collectionId, &h.error);
+@@ -830,7 +830,7 @@ QContactCollection QContactManager::collection(const QContactCollectionId& colle
+ /*!
+   Returns a list of all of the collections managed by this manager.
+  */
+-QList<QContactCollection> QContactManager::collections()
++QList<QContactCollection> QContactManager::collections() const
+ {
+     QContactManagerSyncOpErrorHolder h(this);
+     return d->m_engine->collections(&h.error);
+diff --git a/src/contacts/qcontactmanager.h b/src/contacts/qcontactmanager.h
+index 5621b64c..8c7f110a 100644
+--- a/src/contacts/qcontactmanager.h
++++ b/src/contacts/qcontactmanager.h
+@@ -157,8 +157,8 @@ public:
+ 
+     // collections
+     QContactCollectionId defaultCollectionId() const;
+-    QContactCollection collection(const QContactCollectionId& collectionId);
+-    QList<QContactCollection> collections();
++    QContactCollection collection(const QContactCollectionId& collectionId) const;
++    QList<QContactCollection> collections() const;
+     bool saveCollection(QContactCollection* collection);
+     bool removeCollection(const QContactCollectionId& collectionId);
+ 
+diff --git a/src/contacts/qcontactmanager_p.cpp b/src/contacts/qcontactmanager_p.cpp
+index 52266888..f6250aac 100644
+--- a/src/contacts/qcontactmanager_p.cpp
++++ b/src/contacts/qcontactmanager_p.cpp
+@@ -140,6 +140,7 @@ void QContactManagerData::createEngine(const QString &managerName, const QMap<QS
+ 
+     while (!found) {
+         foreach (QContactManagerEngineFactory* f, factories) {
++            if (!f) continue;
+             QList<int> versions = f->supportedImplementationVersions();
+             if (implementationVersion == -1 ||//no given implementation version required
+                     versions.isEmpty() || //the manager engine factory does not report any version
+diff --git a/src/contacts/qcontactmanagerengine.cpp b/src/contacts/qcontactmanagerengine.cpp
+index ebc96a89..f9a74ab0 100644
+--- a/src/contacts/qcontactmanagerengine.cpp
++++ b/src/contacts/qcontactmanagerengine.cpp
+@@ -464,7 +464,7 @@ QContactCollectionId QContactManagerEngine::defaultCollectionId() const
+     \c QContactManager::DoesNotExistError.
+ 
+ */
+-QContactCollection QContactManagerEngine::collection(const QContactCollectionId& collectionId, QContactManager::Error* error)
++QContactCollection QContactManagerEngine::collection(const QContactCollectionId& collectionId, QContactManager::Error* error) const
+ {
+     Q_UNUSED(collectionId);
+     *error = QContactManager::NotSupportedError;
+@@ -475,7 +475,7 @@ QContactCollection QContactManagerEngine::collection(const QContactCollectionId&
+     This function should be reimplemented to support synchronous calls to fetch all the collections
+     managed by this backend. Any errors encountered during this operation should be stored to \a error.
+  */
+-QList<QContactCollection> QContactManagerEngine::collections(QContactManager::Error* error)
++QList<QContactCollection> QContactManagerEngine::collections(QContactManager::Error* error) const
+ {
+     *error = QContactManager::NotSupportedError;
+     return QList<QContactCollection>();
+diff --git a/src/contacts/qcontactmanagerengine.h b/src/contacts/qcontactmanagerengine.h
+index dfac61c8..be3c4862 100644
+--- a/src/contacts/qcontactmanagerengine.h
++++ b/src/contacts/qcontactmanagerengine.h
+@@ -107,8 +107,8 @@ public:
+ 
+     // collections
+     virtual QContactCollectionId defaultCollectionId() const;
+-    virtual QContactCollection collection(const QContactCollectionId &collectionId, QContactManager::Error *error);
+-    virtual QList<QContactCollection> collections(QContactManager::Error *error);
++    virtual QContactCollection collection(const QContactCollectionId &collectionId, QContactManager::Error *error) const;
++    virtual QList<QContactCollection> collections(QContactManager::Error *error) const;
+     virtual bool saveCollection(QContactCollection *collection, QContactManager::Error *error);
+     virtual bool removeCollection(const QContactCollectionId &collectionId, QContactManager::Error *error);
+ 
+diff --git a/src/organizer/qorganizermanager.cpp b/src/organizer/qorganizermanager.cpp
+index 8176b05a..8abdae2b 100644
+--- a/src/organizer/qorganizermanager.cpp
++++ b/src/organizer/qorganizermanager.cpp
+@@ -655,7 +655,7 @@ QOrganizerCollectionId QOrganizerManager::defaultCollectionId() const
+ /*!
+   Returns the collection identified by the given \a collectionId which is managed by this manager.
+  */
+-QOrganizerCollection QOrganizerManager::collection(const QOrganizerCollectionId& collectionId)
++QOrganizerCollection QOrganizerManager::collection(const QOrganizerCollectionId& collectionId) const
+ {
+     QOrganizerManagerSyncOpErrorHolder h(this);
+     return d->m_engine->collection(collectionId, &h.error);
+@@ -664,7 +664,7 @@ QOrganizerCollection QOrganizerManager::collection(const QOrganizerCollectionId&
+ /*!
+   Returns a list of all of the collections managed by this manager.
+  */
+-QList<QOrganizerCollection> QOrganizerManager::collections()
++QList<QOrganizerCollection> QOrganizerManager::collections() const
+ {
+     QOrganizerManagerSyncOpErrorHolder h(this);
+     return d->m_engine->collections(&h.error);
+diff --git a/src/organizer/qorganizermanager.h b/src/organizer/qorganizermanager.h
+index 7b17e1fe..70ff0869 100644
+--- a/src/organizer/qorganizermanager.h
++++ b/src/organizer/qorganizermanager.h
+@@ -149,8 +149,8 @@ public:
+ 
+     // collections
+     QOrganizerCollectionId defaultCollectionId() const;
+-    QOrganizerCollection collection(const QOrganizerCollectionId& collectionId);
+-    QList<QOrganizerCollection> collections();
++    QOrganizerCollection collection(const QOrganizerCollectionId& collectionId) const;
++    QList<QOrganizerCollection> collections() const;
+     bool saveCollection(QOrganizerCollection* collection);
+     bool removeCollection(const QOrganizerCollectionId& collectionId);
+ 
+diff --git a/src/organizer/qorganizermanagerengine.cpp b/src/organizer/qorganizermanagerengine.cpp
+index 1adaafed..93ccc067 100644
+--- a/src/organizer/qorganizermanagerengine.cpp
++++ b/src/organizer/qorganizermanagerengine.cpp
+@@ -540,7 +540,7 @@ QOrganizerCollectionId QOrganizerManagerEngine::defaultCollectionId() const
+     \c QOrganizerManager::DoesNotExistError.
+ 
+ */
+-QOrganizerCollection QOrganizerManagerEngine::collection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error)
++QOrganizerCollection QOrganizerManagerEngine::collection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error) const
+ {
+     Q_UNUSED(collectionId);
+     *error = QOrganizerManager::NotSupportedError;
+@@ -551,7 +551,7 @@ QOrganizerCollection QOrganizerManagerEngine::collection(const QOrganizerCollect
+     This function should be reimplemented to support synchronous calls to fetch all the collections
+     managed by this backend. Any errors encountered during this operation should be stored to \a error.
+  */
+-QList<QOrganizerCollection> QOrganizerManagerEngine::collections(QOrganizerManager::Error* error)
++QList<QOrganizerCollection> QOrganizerManagerEngine::collections(QOrganizerManager::Error* error) const
+ {
+     *error = QOrganizerManager::NotSupportedError;
+     return QList<QOrganizerCollection>();
+diff --git a/src/organizer/qorganizermanagerengine.h b/src/organizer/qorganizermanagerengine.h
+index 82830767..4c80a667 100644
+--- a/src/organizer/qorganizermanagerengine.h
++++ b/src/organizer/qorganizermanagerengine.h
+@@ -109,8 +109,8 @@ public:
+ 
+     // collections
+     virtual QOrganizerCollectionId defaultCollectionId() const;
+-    virtual QOrganizerCollection collection(const QOrganizerCollectionId &collectionId, QOrganizerManager::Error *error);
+-    virtual QList<QOrganizerCollection> collections(QOrganizerManager::Error *error);
++    virtual QOrganizerCollection collection(const QOrganizerCollectionId &collectionId, QOrganizerManager::Error *error) const;
++    virtual QList<QOrganizerCollection> collections(QOrganizerManager::Error *error) const;
+     virtual bool saveCollection(QOrganizerCollection *collection, QOrganizerManager::Error *error);
+     virtual bool removeCollection(const QOrganizerCollectionId &collectionId, QOrganizerManager::Error *error);
+ 
+diff --git a/src/plugins/contacts/memory/qcontactmemorybackend.cpp b/src/plugins/contacts/memory/qcontactmemorybackend.cpp
+index 5cba6762..9a831bab 100644
+--- a/src/plugins/contacts/memory/qcontactmemorybackend.cpp
++++ b/src/plugins/contacts/memory/qcontactmemorybackend.cpp
+@@ -525,7 +525,7 @@ QContactCollectionId QContactMemoryEngine::defaultCollectionId() const
+     return collectionId(id);
+ }
+ 
+-QContactCollection QContactMemoryEngine::collection(const QContactCollectionId &collectionId, QContactManager::Error *error)
++QContactCollection QContactMemoryEngine::collection(const QContactCollectionId &collectionId, QContactManager::Error *error) const
+ {
+     if (d->m_idToCollectionHash.contains(collectionId)) {
+         *error = QContactManager::NoError;
+@@ -536,7 +536,7 @@ QContactCollection QContactMemoryEngine::collection(const QContactCollectionId &
+     return QContactCollection();
+ }
+ 
+-QList<QContactCollection> QContactMemoryEngine::collections(QContactManager::Error *error)
++QList<QContactCollection> QContactMemoryEngine::collections(QContactManager::Error *error) const
+ {
+     Q_ASSERT(!d->m_idToCollectionHash.isEmpty());
+     *error = QContactManager::NoError;
+diff --git a/src/plugins/contacts/memory/qcontactmemorybackend_p.h b/src/plugins/contacts/memory/qcontactmemorybackend_p.h
+index 7a9c4d9f..4da96a97 100644
+--- a/src/plugins/contacts/memory/qcontactmemorybackend_p.h
++++ b/src/plugins/contacts/memory/qcontactmemorybackend_p.h
+@@ -165,8 +165,8 @@ public:
+ 
+     // collections
+     QContactCollectionId defaultCollectionId() const;
+-    QContactCollection collection(const QContactCollectionId &collectionId, QContactManager::Error *error);
+-    QList<QContactCollection> collections(QContactManager::Error* error);
++    QContactCollection collection(const QContactCollectionId &collectionId, QContactManager::Error *error) const;
++    QList<QContactCollection> collections(QContactManager::Error* error) const;
+     bool saveCollection(QContactCollection* collection, QContactManager::Error* error);
+     bool removeCollection(const QContactCollectionId& collectionId, QContactManager::Error* error);
+ 
+diff --git a/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp b/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp
+index fe997ab3..e494cffa 100644
+--- a/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp
++++ b/src/plugins/organizer/memory/qorganizeritemmemorybackend.cpp
+@@ -1051,7 +1051,7 @@ QOrganizerCollectionId QOrganizerItemMemoryEngine::defaultCollectionId() const
+     return collectionId(QByteArray(reinterpret_cast<const char *>(&id), sizeof(uint)));
+ }
+ 
+-QOrganizerCollection QOrganizerItemMemoryEngine::collection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error)
++QOrganizerCollection QOrganizerItemMemoryEngine::collection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error) const
+ {
+     if (d->m_idToCollectionHash.contains(collectionId)) {
+         *error = QOrganizerManager::NoError;
+@@ -1062,7 +1062,7 @@ QOrganizerCollection QOrganizerItemMemoryEngine::collection(const QOrganizerColl
+     return QOrganizerCollection();
+ }
+ 
+-QList<QOrganizerCollection> QOrganizerItemMemoryEngine::collections(QOrganizerManager::Error* error)
++QList<QOrganizerCollection> QOrganizerItemMemoryEngine::collections(QOrganizerManager::Error* error) const
+ {
+     Q_ASSERT(!d->m_idToCollectionHash.isEmpty());
+     *error = QOrganizerManager::NoError;
+diff --git a/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h b/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h
+index 1bfbfb22..4199140c 100644
+--- a/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h
++++ b/src/plugins/organizer/memory/qorganizeritemmemorybackend_p.h
+@@ -153,8 +153,8 @@ public:
+ 
+     // collections
+     QOrganizerCollectionId defaultCollectionId() const;
+-    QOrganizerCollection collection(const QOrganizerCollectionId &collectionId, QOrganizerManager::Error *error);
+-    QList<QOrganizerCollection> collections(QOrganizerManager::Error* error);
++    QOrganizerCollection collection(const QOrganizerCollectionId &collectionId, QOrganizerManager::Error *error) const;
++    QList<QOrganizerCollection> collections(QOrganizerManager::Error* error) const;
+     bool saveCollection(QOrganizerCollection* collection, QOrganizerManager::Error* error);
+     bool removeCollection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error);
+ 
+diff --git a/src/plugins/organizer/skeleton/qorganizerskeleton.cpp b/src/plugins/organizer/skeleton/qorganizerskeleton.cpp
+index fe1ff514..eb7d49c0 100644
+--- a/src/plugins/organizer/skeleton/qorganizerskeleton.cpp
++++ b/src/plugins/organizer/skeleton/qorganizerskeleton.cpp
+@@ -264,7 +264,7 @@ QOrganizerCollectionId QOrganizerItemSkeletonEngine::defaultCollectionId() const
+     return QOrganizerManagerEngine::defaultCollectionId();
+ }
+ 
+-QOrganizerCollection QOrganizerItemSkeletonEngine::collection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error)
++QOrganizerCollection QOrganizerItemSkeletonEngine::collection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error) const
+ {
+     /*
+         TODO
+@@ -276,7 +276,7 @@ QOrganizerCollection QOrganizerItemSkeletonEngine::collection(const QOrganizerCo
+     return QOrganizerManagerEngine::collection(collectionId, error);
+ }
+ 
+-QList<QOrganizerCollection> QOrganizerItemSkeletonEngine::collections(QOrganizerManager::Error* error)
++QList<QOrganizerCollection> QOrganizerItemSkeletonEngine::collections(QOrganizerManager::Error* error) const
+ {
+     /*
+         TODO
+diff --git a/src/plugins/organizer/skeleton/qorganizerskeleton_p.h b/src/plugins/organizer/skeleton/qorganizerskeleton_p.h
+index 3deea2a6..a89487e1 100644
+--- a/src/plugins/organizer/skeleton/qorganizerskeleton_p.h
++++ b/src/plugins/organizer/skeleton/qorganizerskeleton_p.h
+@@ -141,8 +141,8 @@ public:
+ 
+     // collections
+     QOrganizerCollectionId defaultCollectionId() const;
+-    QOrganizerCollection collection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error);
+-    QList<QOrganizerCollection> collections(QOrganizerManager::Error* error);
++    QOrganizerCollection collection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error) const;
++    QList<QOrganizerCollection> collections(QOrganizerManager::Error* error) const;
+     bool saveCollection(QOrganizerCollection* collection, QOrganizerManager::Error* error);
+     bool removeCollection(const QOrganizerCollectionId& collectionId, QOrganizerManager::Error* error);
+ 
+-- 
+2.17.1
+
